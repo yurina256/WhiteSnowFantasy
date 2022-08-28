@@ -1,0 +1,17 @@
+{
+  "name": "toinfes2022",
+  "version": "1.0.0",
+  "description": "channel access token:U9UKiUaOF3W+1HBIJEG4fAXJAj5xxsSWDa5QmHdTHaDvQVyzfy7VPKgGFkKpbY1jseX0tr60g9QR0EA44/J46CrEtwBEVTSh04HsIPvzzdJHWQsTIqFYWRGs7aWufzZrYeQ/WojFvShrcQWs/hkqYAdB04t89/1O/w1cDnyilFU=\r lang:nodejs v16.17.0 LTS",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@line/bot-sdk": "^7.0.0",
+    "crypto": "^1.0.1",
+    "express": "^4.18.1",
+    "mysql": "^2.18.1"
+  }
+}
