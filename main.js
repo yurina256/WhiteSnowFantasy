@@ -14,8 +14,8 @@ app.use(express.urlencoded({
 //サーバ立ち上げ
 const server = require('https').createServer({
   //証明書
-  key: fs.readFileSync('/etc/letsencrypt/live/toinfes-api-dev.com/privkey.pem'),
-  cert: fs.readFileSync('/etc/letsencrypt/live/toinfes-api-dev.com/fullchain.pem'),  
+  key: fs.readFileSync(pw.key_path),
+  cert: fs.readFileSync(pw.cert_path),  
 }, app);
 
 //Line関連
