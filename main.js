@@ -1,4 +1,5 @@
 var pw = require("./pw.js");
+var message = require("./message.js");
 
 //express
 var express = require("express");
@@ -26,7 +27,6 @@ const config = {
     channelAccessToken: pw.line_channelAccessToken,
     channelSecret: pw.line_channelSecret
 }
-
 const client = new line.Client(config);
 
 //MySQL
@@ -37,6 +37,22 @@ const connection = mysql.createConnection({
   password: pw.db_pw,
 });
 connection.query(`use toinfes`);
+
+//グローバル一時変数
+var user_status = Array(); //入力待ち状態-ここに値が入っている場合、次の入力の解釈を変える
+
+var username_tmp = Array(); //ユーザー名設定対話中の一時変数
+
+//定数
+const flex_template = {
+  type:"flex",
+  altText:"this is a flex msg",
+  contents:{}
+ }
+Object.freeze(flex_template);
+
+
+//処理系ここから
 
 function sign_check(req,res){
   const signature = crypto.createHmac("SHA256", config['channelSecret']).update(JSON.stringify(req.body)).digest("base64");
@@ -49,7 +65,7 @@ function sign_check(req,res){
   else console.log('sign check succees');
 }
 
-app.get("/",(req,res,next) => {
+app.get("/",(req,res) => {
   console.log("request : get -> /");
   console.log(req.ip);
   console.log(req.body);
@@ -72,7 +88,7 @@ app.get("/api",(req,res) => {
 
 //
 app.get("/api/user/:userId",(req,res) => {
-  connection.query(`SELECT * FROM users where userId = '${req.params["userId"]};'`,(error, results) => {
+  connection.query(`SELECT * FROM users where userId = '${req.params["userId"]}';`,(error, results) => {
       console.log(results[0]);
       res.json(results[0]);
     }
@@ -98,32 +114,83 @@ app.post("/api",(req,res) => {
     return;
   }
   const event = req.body.events[0];
-  client.replyMessage(event.replyToken, {type:'text',text:event.message.text});
-});
-
-//Lambdaではここが叩かれる
-exports.handler = (event,context) => {
-    
-    //DB接続
-    /*
-    connection.connect((err) => {
-  if (err) {
-    console.log('error connecting: ' + err.stack);
+  console.log(event);
+  if(user_status[event.source.userId]){
+    branch(event);
     return;
   }
-    console.log('success');
+  if(event.type == "follow"){
+    follow(event);
+    return;
+  }
+  //client.replyMessage(event.replyToken, {type:'text',text:event.message.text});
+});
+
+function follow (event){
+  //友達追加されたときに発生
+  //ブロック解除でも同じのが飛ぶので考慮
+
+  //DBにユーザーデータが存在するか検証
+  connection.query(`SELECT * from users where userId = '${event.source.userId}';`,(error,results) => {
+    console.log(results);
+    if(results.length!=0) return;
   });
-  */
-    console.log(req.body.events[0].replyToken);
-    client.replyMessage(req.body.events[0].replyToken, {type:'text',text:'hoge'})
-                    .then((response) => {
-                        let lambdaResponse = {
-                            statusCode: 200,
-                            headers: { "X-Line-Status": "OK" },
-                            body: '{"result":"completed"}'
-                        };
-                        context.succeed(lambdaResponse);
-                    }).catch((err) => console.log(err));
+
+  //
+  client.replyMessage(event.replyToken, {type:'text',text:message.add_friend});
+  user_status[event.source.userId] = "waitinputname";
 }
 
+function branch(event){//user_statusが設定されている状態の場合(=対話中の場合)の振り分け
+  const status = user_status[event.source.userId];
+  //console.log("r:"+user_status[event.source.userId]);
+  switch(status){
+    case "waitinputname":
+      inputname(event);
+      break;
+    case "checkinputname":
+      checkinputname(event);
+      break;
+  }
+}
+
+function inputname(event){
+  var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+  return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.input_name)));;
+  username_tmp[event.source.userId] = event.message.text
+  console.log(return_obj);
+  console.log(return_obj.contents);
+  return_obj.contents.body.contents[0].text = event.message.text + return_obj.contents.body.contents[0].text;
+  console.log("msg:"+return_obj.contents.body.contents[0].text);
+  client.replyMessage(event.replyToken, return_obj);
+  user_status[event.source.userId] = "checkinputname";
+  //console.log("f:"+JSON.stringify(flex_template));
+}
+
+function checkinputname(event){
+  if(event.message.text == "はい"){
+    //dbたたく
+    connection.query(`insert into users value('${event.source.userId}','${username_tmp[event.source.userId]}',0,0);`,(error,results) => {
+      if(results){
+        client.replyMessage(event.replyToken, {type:'text',text:message.input_name_done});
+      }
+    });
+  }else if(event.message.text == "いいえ"){
+    //もっかい入力させる
+    user_status[event.source.userId] = null;
+    client.replyMessage(event.replyToken, {type:'text',text:message.add_friend});
+    user_status[event.source.userId] = "waitinputname";
+  }else{
+    //inputname()で出したのを再表示
+    var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+    return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.input_name)));
+    return_obj.contents.body.contents[0].text = username_tmp[event.source.userId] + return_obj.contents.body.contents[0].text;
+    client.replyMessage(event.replyToken, return_obj);
+  }
+}
+
+
+app.post("/api/read-spreadsheet",(req,res) => {
+  //スプシ読み込み→DBに投げる
+});
 server.listen(port, () => console.log(`LListen : port ${port}!`));
