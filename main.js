@@ -114,6 +114,7 @@ app.post("/api",(req,res) => {
     return;
   }
   const event = req.body.events[0];
+  const text = event.message.text;
   console.log(event);
   if(user_status[event.source.userId]){
     branch(event);
@@ -121,6 +122,10 @@ app.post("/api",(req,res) => {
   }
   if(event.type == "follow"){
     follow(event);
+    return;
+  }
+  if(text == "ランキング"){
+    get_rank(event);
     return;
   }
   //client.replyMessage(event.replyToken, {type:'text',text:event.message.text});
@@ -189,6 +194,20 @@ function checkinputname(event){
   }
 }
 
+function get_rank(event){
+  //ランキング取得
+  connection.query(`select * from users order by level desc;`,(error,results) => {
+    if(results){
+      var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+      return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.get_rank)));
+      for(var i=0;i<3;i++){
+        return_obj.contents.body.contents[1].contents[i].contents[1].text = results[i].userName;
+        return_obj.contents.body.contents[1].contents[i].contents[2].text = "Lv"+String(results[i].level);
+      }
+      client.replyMessage(event.replyToken, return_obj);
+    }
+  });
+}
 
 app.post("/api/read-spreadsheet",(req,res) => {
   //スプシ読み込み→DBに投げる
