@@ -134,11 +134,11 @@ function follow (event){
   connection.query(`SELECT * from users where userId = '${event.source.userId}';`,(error,results) => {
     console.log(results);
     if(results.length!=0) return;
+    else{
+      client.replyMessage(event.replyToken, {type:'text',text:message.add_friend});
+      user_status[event.source.userId] = "waitinputname";
+    }
   });
-
-  //
-  client.replyMessage(event.replyToken, {type:'text',text:message.add_friend});
-  user_status[event.source.userId] = "waitinputname";
 }
 
 function branch(event){//user_statusが設定されている状態の場合(=対話中の場合)の振り分け
@@ -157,7 +157,7 @@ function branch(event){//user_statusが設定されている状態の場合(=対
 function inputname(event){
   var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
   return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.input_name)));;
-  username_tmp[event.source.userId] = event.message.text
+  username_tmp[event.source.userId] = event.message.text;
   console.log(return_obj);
   console.log(return_obj.contents);
   return_obj.contents.body.contents[0].text = event.message.text + return_obj.contents.body.contents[0].text;
@@ -173,11 +173,11 @@ function checkinputname(event){
     connection.query(`insert into users value('${event.source.userId}','${username_tmp[event.source.userId]}',0,0);`,(error,results) => {
       if(results){
         client.replyMessage(event.replyToken, {type:'text',text:message.input_name_done});
+        user_status[event.source.userId] = null;
       }
     });
   }else if(event.message.text == "いいえ"){
     //もっかい入力させる
-    user_status[event.source.userId] = null;
     client.replyMessage(event.replyToken, {type:'text',text:message.add_friend});
     user_status[event.source.userId] = "waitinputname";
   }else{
@@ -193,4 +193,5 @@ function checkinputname(event){
 app.post("/api/read-spreadsheet",(req,res) => {
   //スプシ読み込み→DBに投げる
 });
-server.listen(port, () => console.log(`LListen : port ${port}!`));
+
+server.listen(port, () => console.log(`Listen : port ${port}!`));
