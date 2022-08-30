@@ -13,8 +13,10 @@ CREATE TABLE log (
     eventId INT not null,
     time DATETIME,
     foreign key (userId) REFERENCES users(userId),
+    foreign key (eventId) REFERENCES events(eventId),
     PRIMARY KEY (logID)
 );
+
 
 -- testCase
 insert into users value("testuser0","てすとゆーざーねーむ",0,0);

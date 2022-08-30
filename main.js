@@ -51,16 +51,9 @@ function sign_check(req,res){
 
 app.get("/",(req,res,next) => {
   console.log("request : get -> /");
+  console.log(req.ip);
+  console.log(req.body);
   res.sendStatus(200);
-});
-
-app.post("/api",(req,res) => {
-
-  //署名検証
-  sign_check(req,res);
-
-  console.log(req.body.events[0].source);
-
 });
 
 //status check
@@ -92,6 +85,20 @@ app.get("/api/user-all",(req,res) => {
       res.json(results);
     }
   );
+});
+
+app.post("/api",(req,res) => {
+  //LINE用
+  //署名検証
+  sign_check(req,res);
+  if(req.body.events.length == 0){
+    //LINE側からの疎通チェック
+    console.log("webhook check ok");
+    res.sendStatus(200);
+    return;
+  }
+  const event = req.body.events[0];
+  client.replyMessage(event.replyToken, {type:'text',text:event.message.text});
 });
 
 //Lambdaではここが叩かれる
