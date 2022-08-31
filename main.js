@@ -43,6 +43,10 @@ var user_status = Array(); //入力待ち状態-ここに値が入っている�
 
 var username_tmp = Array(); //ユーザー名設定対話中の一時変数
 
+var usergrade_tmp = Array(); //クラス設定対話中の一時変数
+
+var userclass_tmp = Array(); //クラス設定対話中の一時変数
+
 //定数
 const flex_template = {
   type:"flex",
@@ -114,7 +118,6 @@ app.post("/api",(req,res) => {
     return;
   }
   const event = req.body.events[0];
-  const text = event.message.text;
   console.log(event);
   if(user_status[event.source.userId]){
     branch(event);
@@ -124,11 +127,12 @@ app.post("/api",(req,res) => {
     follow(event);
     return;
   }
+  const text = event.message.text;
   if(text == "ランキング"){
     get_rank(event);
     return;
   }
-  //client.replyMessage(event.replyToken, {type:'text',text:event.message.text});
+  //どれでもない場合、キーワードが入力されたものとして扱う
 });
 
 function follow (event){
@@ -156,6 +160,15 @@ function branch(event){//user_statusが設定されている状態の場合(=対
     case "checkinputname":
       checkinputname(event);
       break;
+    case "waitinputgrade":
+      inputgrade(event);
+      break;
+    case "waitinputclass":
+      inputclass(event);
+      break;
+    case "checkinputclass":
+      checkinputclass(event);
+      break;
   }
 }
 
@@ -163,10 +176,10 @@ function inputname(event){
   var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
   return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.input_name)));;
   username_tmp[event.source.userId] = event.message.text;
-  console.log(return_obj);
-  console.log(return_obj.contents);
+  //console.log(return_obj);
+  //console.log(return_obj.contents);
   return_obj.contents.body.contents[0].text = event.message.text + return_obj.contents.body.contents[0].text;
-  console.log("msg:"+return_obj.contents.body.contents[0].text);
+  //console.log("msg:"+return_obj.contents.body.contents[0].text);
   client.replyMessage(event.replyToken, return_obj);
   user_status[event.source.userId] = "checkinputname";
   //console.log("f:"+JSON.stringify(flex_template));
@@ -174,13 +187,19 @@ function inputname(event){
 
 function checkinputname(event){
   if(event.message.text == "はい"){
-    //dbたたく
-    connection.query(`insert into users value('${event.source.userId}','${username_tmp[event.source.userId]}',0,0);`,(error,results) => {
-      if(results){
-        client.replyMessage(event.replyToken, {type:'text',text:message.input_name_done});
-        user_status[event.source.userId] = null;
-      }
-    });
+    user_status[event.source.userId] = "waitinputgrade";
+
+    var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+    return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.ask_grade)));
+    client.replyMessage(event.replyToken, return_obj);
+
+    //dbたたかない　あとでけす
+    //connection.query(`insert into users value('${event.source.userId}','${username_tmp[event.source.userId]}',0,0);`,(error,results) => {
+    //  if(results){
+    //    client.replyMessage(event.replyToken, {type:'text',text:message.input_name_done});
+    //    user_status[event.source.userId] = null;
+    //  }
+    //});
   }else if(event.message.text == "いいえ"){
     //もっかい入力させる
     client.replyMessage(event.replyToken, {type:'text',text:message.add_friend});
@@ -190,6 +209,87 @@ function checkinputname(event){
     var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
     return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.input_name)));
     return_obj.contents.body.contents[0].text = username_tmp[event.source.userId] + return_obj.contents.body.contents[0].text;
+    client.replyMessage(event.replyToken, return_obj);
+  }
+}
+
+function inputgrade(event){
+  switch(event.message.text){
+    case "1年":
+    case "2年":
+    case "3年":
+      //データを格納してクラスを聞く
+      usergrade_tmp[event.source.userId] = event.message.text;
+      user_status[event.source.userId] = "waitinputclass";
+
+      var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+      return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.ask_class)));
+      client.replyMessage(event.replyToken, return_obj);
+      break;
+    case "教職員/外来":
+      //データを格納してチェックへ
+      usergrade_tmp[event.source.userId] = event.message.text;
+      userclass_tmp[event.source.userId] = "";//クラスは空文字列扱い
+      user_status[event.source.userId] = "checkinputclass";
+      
+      var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+      return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.check_class)));
+      return_obj.contents.body.contents[0].text = usergrade_tmp[event.source.userId] + userclass_tmp[event.source.userId] + return_obj.contents.body.contents[0].text;
+      client.replyMessage(event.replyToken, return_obj);
+      break;
+    default:
+      //再送
+      client.replyMessage(event.replyToken, {type:'text',text:message.ask_grade});
+  }
+}
+
+function inputclass(event){
+  switch(event.message.text){
+    case "1組":
+    case "2組":
+    case "3組":
+    case "4組":
+    case "5組":
+    case "6組":
+      userclass_tmp[event.source.userId] = event.message.text;
+      user_status[event.source.userId] = "checkinputclass";
+
+      var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+      return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.check_class)));
+      return_obj.contents.body.contents[0].text = usergrade_tmp[event.source.userId] + userclass_tmp[event.source.userId] + return_obj.contents.body.contents[0].text;
+      client.replyMessage(event.replyToken, return_obj);
+      break;
+    default:
+      //再送処理
+      var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+      return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.ask_class)));
+      client.replyMessage(event.replyToken, return_obj);
+  }
+}
+
+function checkinputclass(event){ 
+  if(event.message.text == "はい"){
+    //dbたたく
+    const classArr = ["教職員/外来","1年1組","1年2組","1年3組","1年4組","1年5組","1年6組","2年1組","2年2組","2年3組","2年4組","2年5組","2年6組","3年1組","3年2組","3年3組","3年4組","3年5組","3年6組"];
+    const userclass = classArr.indexOf(usergrade_tmp[event.source.userId]+userclass_tmp[event.source.userId]);
+    connection.query(`insert into users value('${event.source.userId}','${username_tmp[event.source.userId]}',0,${userclass});`,(error,results) => {
+      if(results){
+        client.replyMessage(event.replyToken, {type:'text',text:message.input_done});
+        user_status[event.source.userId] = null;
+      }
+    });
+  }else if(event.message.text == "いいえ"){
+    //inputgrade()にもどる
+    user_status[event.source.userId] = "waitinputgrade";
+
+    var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+    return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.ask_grade)));
+    client.replyMessage(event.replyToken, return_obj);
+  }else{
+    //inputclass()で出したのを再表示
+    var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+    return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.check_class)));
+    return_obj.contents.body.contents[0].text = usergrade_tmp[event.source.userId] + userclass_tmp[event.source.userId] + return_obj.contents.body.contents[0].text;
     client.replyMessage(event.replyToken, return_obj);
   }
 }

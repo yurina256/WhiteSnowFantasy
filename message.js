@@ -167,10 +167,221 @@ const __get_rank = {
     }
   }
 
+const __ask_grade = {
+  type: "bubble",
+  body: {
+    type: "box",
+    layout: "vertical",
+    contents: [
+      {
+        type: "text",
+        text: "学年を教えてください！",
+        wrap: true
+      }
+    ]
+  },
+  footer: {
+    type: "box",
+    layout: "vertical",
+    spacing: "sm",
+    contents: [
+      {
+        type: "button",
+        style: "link",
+        height: "sm",
+        action: {
+          type: "message",
+          label: "1年",
+          text: "1年"
+        }
+      },
+      {
+        type: "button",
+        style: "link",
+        height: "sm",
+        action: {
+          type: "message",
+          label: "2年",
+          text: "2年"
+        }
+      },
+      {
+        type: "button",
+        style: "link",
+        height: "sm",
+        action: {
+          type: "message",
+          label: "3年",
+          text: "3年"
+        }
+      },
+      {
+        type: "button",
+        style: "link",
+        height: "sm",
+        action: {
+          type: "message",
+          label: "教職員/外来",
+          text: "教職員/外来"
+        }
+      },
+      {
+        type: "box",
+        layout: "vertical",
+        contents: [],
+        margin: "sm"
+      }
+    ],
+    flex: 0
+  }
+}
+
+const __ask_class = {
+  type: "bubble",
+  body: {
+    type: "box",
+    layout: "vertical",
+    contents: [
+      {
+        type: "text",
+        text: "クラスを教えてください！",
+        wrap: true
+      }
+    ]
+  },
+  footer: {
+    type: "box",
+    layout: "vertical",
+    spacing: "sm",
+    contents: [
+      {
+        type: "button",
+        style: "link",
+        height: "sm",
+        action: {
+          type: "message",
+          label: "1組",
+          text: "1組"
+        }
+      },
+      {
+        type: "button",
+        style: "link",
+        height: "sm",
+        action: {
+          type: "message",
+          label: "2組",
+          text: "2組"
+        }
+      },
+      {
+        type: "button",
+        style: "link",
+        height: "sm",
+        action: {
+          type: "message",
+          label: "3組",
+          text: "3組"
+        }
+      },
+      {
+        type: "button",
+        style: "link",
+        height: "sm",
+        action: {
+          type: "message",
+          label: "4組",
+          text: "4組"
+        }
+      },
+      {
+        type: "button",
+        style: "link",
+        height: "sm",
+        action: {
+          type: "message",
+          label: "5組",
+          text: "5組"
+        }
+      },
+      {
+        type: "button",
+        style: "link",
+        height: "sm",
+        action: {
+          type: "message",
+          label: "6組",
+          text: "6組"
+        }
+      },
+      {
+        type: "box",
+        layout: "vertical",
+        contents: [],
+        margin: "sm"
+      }
+    ],
+    flex: 0
+  }
+}
+
+const __check_class = {
+  type: "bubble",
+  body: {
+    type: "box",
+    layout: "vertical",
+    contents: [
+      {
+        type: "text",
+        text: "で間違いないですか？",
+        wrap: true
+      }
+    ]
+  },
+  footer: {
+    type: "box",
+    layout: "vertical",
+    spacing: "sm",
+    contents: [
+      {
+        type: "button",
+        style: "link",
+        height: "sm",
+        action: {
+          type: "message",
+          label: "はい",
+          text: "はい"
+        }
+      },
+      {
+        type: "button",
+        style: "link",
+        height: "sm",
+        action: {
+          type: "message",
+          label: "いいえ",
+          text: "いいえ"
+        }
+      },
+      {
+        type: "box",
+        layout: "vertical",
+        contents: [],
+        margin: "sm"
+      }
+    ],
+    flex: 0
+  }
+}
+
+
 module.exports = {
     add_friend : "あなたの名前を教えてください！", //友達追加時メッセージ
     input_name : __input_name,
-    input_name_done: "登録が完了しました！",
-    get_rank : __get_rank
+    input_done: "登録が完了しました！",
+    get_rank : __get_rank,
+    ask_grade : __ask_grade,
+    ask_class : __ask_class,
+    check_class : __check_class
 };
 //改行は\n
