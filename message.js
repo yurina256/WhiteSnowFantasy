@@ -374,6 +374,55 @@ const __check_class = {
   }
 }
 
+__mystery_template = {
+  type: "bubble",
+  hero: {
+    type: "image",
+    url: "https://scdn.line-apps.com/n/channel_devcenter/img/fx/01_1_cafe.png",
+    size: "full",
+    aspectRatio: "20:13",
+    aspectMode: "cover",
+    action: {
+      type: "uri",
+      uri: "http://linecorp.com/"
+    }
+  },
+  body: {
+    type: "box",
+    layout: "vertical",
+    contents: [
+      {
+        type: "text",
+        text: "[input title]",
+        weight: "bold",
+        size: "xl"
+      },
+      {
+        type: "text",
+        text: "[input text]"
+      }
+    ]
+  },
+  footer: {
+    type: "box",
+    layout: "vertical",
+    spacing: "sm",
+    contents: [
+      {
+        type: "button",
+        style: "link",
+        height: "sm",
+        action: {
+          type: "uri",
+          label: "次の謎を開く",
+          uri: "localhost"
+        }
+      }
+    ],
+    flex: 0
+  }
+}
+
 
 module.exports = {
     add_friend : "あなたの名前を教えてください！", //友達追加時メッセージ
@@ -382,6 +431,8 @@ module.exports = {
     get_rank : __get_rank,
     ask_grade : __ask_grade,
     ask_class : __ask_class,
-    check_class : __check_class
+    check_class : __check_class,
+    mystery_template : __mystery_template,
+    used_keyword : "既に達成したイベントです！"
 };
 //改行は\n

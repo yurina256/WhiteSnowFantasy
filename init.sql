@@ -9,16 +9,19 @@ CREATE TABLE users (
 
 CREATE TABLE events (
     eventId INT NOT NULL,
-    type INT NOT NULL,
+    type INT NOT NULL, -- 0 謎解き 1宝探し　2その他
     message TEXT,
     level INT,
     permise_1 INT, -- 前提条件
+    keyword VARCHAR(64), -- 召喚キーワード
+    keyword2 VARCHAR(64),
     image VARCHAR(64), -- 画像ファイル名
+    link VARCHAR(128), -- 遷移先リンク
     foreign key (permise_1) REFERENCES events(eventId),
     PRIMARY KEY (eventId)
 );
 
-CREATE TABLE log (
+CREATE TABLE log ( -- events内の実行を記録　登録などは扱わない　フラグ管理など
     logId INT NOT NULL AUTO_INCREMENT,
     userId VARCHAR(40) not null,
     eventId INT not null,

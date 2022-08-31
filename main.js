@@ -31,6 +31,7 @@ const client = new line.Client(config);
 
 //MySQL
 const mysql = require('mysql');
+const { mystery_template } = require("./message.js");
 const connection = mysql.createConnection({
   host: 'database-1.c0gwlsggxfl3.ap-northeast-1.rds.amazonaws.com',
   user: 'admin',
@@ -92,7 +93,7 @@ app.get("/api",(req,res) => {
 
 //
 app.get("/api/user/:userId",(req,res) => {
-  connection.query(`SELECT * FROM users where userId = '${req.params["userId"]}';`,(error, results) => {
+  connection.query(`SELECT * FROM users where userId = '${req.params.userId}';`,(error, results) => {
       console.log(results[0]);
       res.json(results[0]);
     }
@@ -127,12 +128,15 @@ app.post("/api",(req,res) => {
     follow(event);
     return;
   }
+  if(event.type != "message") return; //メッセージイベント以外は破棄
+
   const text = event.message.text;
   if(text == "ランキング"){
     get_rank(event);
     return;
   }
   //どれでもない場合、キーワードが入力されたものとして扱う
+  input_message(event);
 });
 
 function follow (event){
@@ -306,6 +310,46 @@ function get_rank(event){
       }
       client.replyMessage(event.replyToken, return_obj);
     }
+  });
+}
+
+function input_message(event){
+  //キーワード受容判定
+  const text = event.message.text.trim();
+
+  connection.query(`select * from events where keyword = '${text}';`,(error,results) => {
+    if(results.length!=0){
+      if(results[0].permise_1){
+        connection.query(`select * from log where userId ='${event.source.userId}' AND eventId = '${results[0].permise_1}' ;`,(error2,results2) => {
+          if(results2.length!=0) return;
+          //発火(前提条件を満たす)
+          else do_event(event,results[0]);
+        });
+      }else{
+        //発火(前提条件なし)
+        do_event(event,results[0]);
+      }
+    }
+  });
+}
+
+function do_event(event,event_data){
+  //既に達成したイベントか判定
+  connection.query(`select * from log where userId = '${event.source.userId}' and eventId = '${event_data.eventId}';`,(error,results) => {
+    if(results.length!=0){
+      client.replyMessage(event.replyToken, {type:'text',text:message.used_keyword});
+      return;
+    }
+    //Lv加算
+    connection.query(`update users set level = level + '${event_data.level}' where userId = '${event.source.userId}';`,(error,results) => {});
+    //ログ追加
+    connection.query(`insert into log value(null,'${event.source.userId}','${event_data.eventId}',cast( now() as datetime));`,(error,results) => {});
+    //メッセージを書き換えて投げる
+    var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+    return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.mystery_template)));
+    return_obj.contents.body.contents[0].text = event_data.message;
+    return_obj.contents.footer.contents[0].action.uri = event_data.link;
+    client.replyMessage(event.replyToken,return_obj);
   });
 }
 
