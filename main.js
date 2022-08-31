@@ -1,5 +1,6 @@
 var pw = require("./pw.js");
 var message = require("./message.js");
+var request = require('request');
 
 //express
 var express = require("express");
@@ -317,11 +318,11 @@ function input_message(event){
   //キーワード受容判定
   const text = event.message.text.trim();
 
-  connection.query(`select * from events where keyword = '${text}';`,(error,results) => {
+  connection.query(`select * from events where keyword = '${text}' OR keyword2 = '${text}';`,(error,results) => {
     if(results.length!=0){
       if(results[0].permise_1){
         connection.query(`select * from log where userId ='${event.source.userId}' AND eventId = '${results[0].permise_1}' ;`,(error2,results2) => {
-          if(results2.length!=0) return;
+          if(results2.length==0) return;
           //発火(前提条件を満たす)
           else do_event(event,results[0]);
         });
@@ -355,6 +356,29 @@ function do_event(event,event_data){
 
 app.post("/api/read-spreadsheet",(req,res) => {
   //スプシ読み込み→DBに投げる
+  var options = {
+    url: pw.sheet_link,
+    method: 'GET'
+  }
+  request(options, function (error, response, body) {
+    input = JSON.parse(body).values;
+    console.log(input);
+    for(var i=1;i<input.length;i++){
+      const no = input[i][0];
+      const type      = ["謎解き","宝","その他"].indexOf(input[i][2]);
+      const msg       = input[i][3] || "";
+      const lv        = input[i][4] || "";
+      var permise_1 = (input[i][5] || "").split(",")[0];
+      if(permise_1 == "") permise_1 = "null";
+      const keyword   = input[i][6] || "";
+      const keyword2   = input[i][7] || "";
+      const image     = input[i][9] || "";
+      const link      = input[i][10] || "";
+      console.log(`insert into events value('${no}','${type}','${msg}','${lv}',${permise_1},'${keyword}','${keyword2}','${image}','${link}');`);
+      connection.query(`insert into events value('${no}','${type}','${msg}','${lv}',${permise_1},'${keyword}','${keyword2}','${image}','${link}');`,(error,results) => {});
+    }
+    res.sendStatus(200);
+  })
 });
 
 server.listen(port, () => console.log(`Listen : port ${port}!`));

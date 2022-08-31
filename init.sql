@@ -14,7 +14,7 @@ CREATE TABLE events (
     level INT,
     permise_1 INT, -- 前提条件
     keyword VARCHAR(64), -- 召喚キーワード
-    keyword2 VARCHAR(64),
+    keyword2 VARCHAR(64), -- 召喚キーワード(表記ゆれ)
     image VARCHAR(64), -- 画像ファイル名
     link VARCHAR(128), -- 遷移先リンク
     foreign key (permise_1) REFERENCES events(eventId),
