@@ -1,4 +1,4 @@
-var pw = require("./pw.js");
+var config = require("./config.js");
 var message = require("./message.js");
 var request = require('request');
 
@@ -16,8 +16,8 @@ app.use(express.urlencoded({
 //サーバ立ち上げ
 const server = require('https').createServer({
   //証明書
-  key: fs.readFileSync(pw.key_path),
-  cert: fs.readFileSync(pw.cert_path),  
+  key: fs.readFileSync(config.key_path),
+  cert: fs.readFileSync(config.cert_path),  
 }, app);
 
 //Line関連
@@ -25,18 +25,18 @@ const line = require('@line/bot-sdk');
 const crypto = require('crypto');
 
 const config = {
-    channelAccessToken: pw.line_channelAccessToken,
-    channelSecret: pw.line_channelSecret
+    channelAccessToken: config.line_channelAccessToken,
+    channelSecret: config.line_channelSecret
 }
 const client = new line.Client(config);
 
 //MySQL
 const mysql = require('mysql');
-const { mystery_template } = require("./message.js");
+const { event_template } = require("./message.js");
 const connection = mysql.createConnection({
-  host: 'database-1.c0gwlsggxfl3.ap-northeast-1.rds.amazonaws.com',
-  user: 'admin',
-  password: pw.db_pw,
+  host: config.db_endpoint,
+  user: config.db_user,
+  password: config.db_pw,
 });
 connection.query(`use toinfes`);
 
@@ -347,9 +347,13 @@ function do_event(event,event_data){
     connection.query(`insert into log value(null,'${event.source.userId}','${event_data.eventId}',cast( now() as datetime));`,(error,results) => {});
     //メッセージを書き換えて投げる
     var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
-    return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.mystery_template)));
+    return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.event_template)));
     return_obj.contents.body.contents[0].text = event_data.message;
-    return_obj.contents.footer.contents[0].action.uri = event_data.link;
+    return_obj.contents.body.contents[1].text = `レベルが${event_data.level}上がった！`;
+    if(event_data.type == 0){
+      return_obj.contents.footer = message.event_footer;
+      return_obj.contents.footer.contents[0].action.uri = event_data.link;
+    }
     client.replyMessage(event.replyToken,return_obj);
   });
 }
@@ -357,7 +361,7 @@ function do_event(event,event_data){
 app.post("/api/read-spreadsheet",(req,res) => {
   //スプシ読み込み→DBに投げる
   var options = {
-    url: pw.sheet_link,
+    url: config.sheet_link,
     method: 'GET'
   }
   request(options, function (error, response, body) {
@@ -365,6 +369,7 @@ app.post("/api/read-spreadsheet",(req,res) => {
     console.log(input);
     for(var i=1;i<input.length;i++){
       const no = input[i][0];
+      if(no == "") continue;
       const type      = ["謎解き","宝","その他"].indexOf(input[i][2]);
       const msg       = input[i][3] || "";
       const lv        = input[i][4] || "";

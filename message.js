@@ -374,7 +374,7 @@ const __check_class = {
   }
 }
 
-__mystery_template = {
+const __event_template = {
   type: "bubble",
   hero: {
     type: "image",
@@ -402,25 +402,26 @@ __mystery_template = {
         text: "[input text]"
       }
     ]
-  },
-  footer: {
-    type: "box",
-    layout: "vertical",
-    spacing: "sm",
-    contents: [
-      {
-        type: "button",
-        style: "link",
-        height: "sm",
-        action: {
-          type: "uri",
-          label: "次の謎を開く",
-          uri: "localhost"
-        }
-      }
-    ],
-    flex: 0
   }
+}
+
+const __event_footer = {
+  type: "box",
+  layout: "vertical",
+  spacing: "sm",
+  contents: [
+    {
+      type: "button",
+      style: "link",
+      height: "sm",
+      action: {
+        type: "uri",
+        label: "次の謎を開く",
+        uri: "localhost"
+      }
+    }
+  ],
+  flex: 0
 }
 
 
@@ -432,7 +433,8 @@ module.exports = {
     ask_grade : __ask_grade,
     ask_class : __ask_class,
     check_class : __check_class,
-    mystery_template : __mystery_template,
+    event_template : __event_template,
+    event_footer : __event_footer,
     used_keyword : "既に達成したイベントです！"
 };
 //改行は\n

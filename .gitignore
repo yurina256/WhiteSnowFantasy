@@ -1,4 +1,4 @@
 *-secret.md
 /node_modules
 *.pem
-pw.js
+config.js
