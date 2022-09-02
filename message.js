@@ -1,3 +1,5 @@
+const img_source = "https://be.toinfes-api-dev.com/img/";
+
 const __input_name = {
     type: "bubble",
     body: {
@@ -378,7 +380,7 @@ const __event_template = {
   type: "bubble",
   hero: {
     type: "image",
-    url: "https://scdn.line-apps.com/n/channel_devcenter/img/fx/01_1_cafe.png",
+    url: img_source,
     size: "full",
     aspectRatio: "20:13",
     aspectMode: "cover",
@@ -423,7 +425,6 @@ const __event_footer = {
   ],
   flex: 0
 }
-
 
 module.exports = {
     add_friend : "あなたの名前を教えてください！", //友達追加時メッセージ

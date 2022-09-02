@@ -24,11 +24,11 @@ const server = require('https').createServer({
 const line = require('@line/bot-sdk');
 const crypto = require('crypto');
 
-const config = {
+const line_config = {
     channelAccessToken: config.line_channelAccessToken,
     channelSecret: config.line_channelSecret
 }
-const client = new line.Client(config);
+const client = new line.Client(line_config);
 
 //MySQL
 const mysql = require('mysql');
@@ -61,7 +61,7 @@ Object.freeze(flex_template);
 //処理系ここから
 
 function sign_check(req,res){
-  const signature = crypto.createHmac("SHA256", config['channelSecret']).update(JSON.stringify(req.body)).digest("base64");
+  const signature = crypto.createHmac("SHA256", line_config['channelSecret']).update(JSON.stringify(req.body)).digest("base64");
   const checkHeader = req.headers['x-line-signature'];
   console.log(checkHeader);
   if(signature !== checkHeader){
@@ -350,6 +350,8 @@ function do_event(event,event_data){
     return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.event_template)));
     return_obj.contents.body.contents[0].text = event_data.message;
     return_obj.contents.body.contents[1].text = `レベルが${event_data.level}上がった！`;
+    return_obj.contents.hero.url += event_data.image;
+    console.log(return_obj.contents.hero.url);
     if(event_data.type == 0){
       return_obj.contents.footer = message.event_footer;
       return_obj.contents.footer.contents[0].action.uri = event_data.link;
@@ -384,6 +386,15 @@ app.post("/api/read-spreadsheet",(req,res) => {
     }
     res.sendStatus(200);
   })
+});
+
+//img host test
+app.get('/img/:filename', (req, res) => {
+  console.log(`./images/${req.params.filename}`);
+  fs.readFile(`./images/${req.params.filename}`, (err, data) => {
+    res.type('jpg');
+    res.send(data);
+  });
 });
 
 server.listen(port, () => console.log(`Listen : port ${port}!`));
