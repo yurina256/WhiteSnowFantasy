@@ -52,8 +52,9 @@ var usergrade_tmp = Array(); //クラス設定対話中の一時変数
 
 var userclass_tmp = Array(); //クラス設定対話中の一時変数
 
-var count_mystery;
-var count_treasure;
+var count_mystery;//謎数
+var count_treasure;//宝数
+const count_class = 16;
 
 //定数
 const flex_template = {
@@ -80,6 +81,12 @@ connection.query(`SELECT count(*) FROM events where type = 0;`,(error, results) 
 //宝の数を持ってくる
 connection.query(`SELECT count(*) FROM events where type = 1;`,(error, results) => {
   count_treasure =  results[0][Object.keys(results[0])[0]]+1;
+});
+//クラスをリセット
+connection.query(`DELETE from class;`,(error, results) => {
+  for(var i=0;i<count_class;i++){
+    connection.query(`insert into class value(?,0);`,[i]);
+  }
 });
 
 //処理系ここから
@@ -133,6 +140,7 @@ app.get("/api/user-all",(req,res) => {
   );
 });
 
+//振り分け
 app.post("/api",(req,res) => {
   //LINE用
   //署名検証
@@ -169,6 +177,9 @@ app.post("/api",(req,res) => {
   switch(text){
     case "ランキング":
       get_rank(event);
+      break;
+    case "クラスランキング":
+      get_rank_class(event);
       break;
     case "ステータス":
       get_status(event);
@@ -335,13 +346,27 @@ function checkinputclass(event){
 
 //ランキング(全ユーザー)取得
 function get_rank(event){
-  //ランキング取得
   connection.query(`select * from users order by level desc;`,(error,results) => {
     if(results){
       var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
       return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.get_rank)));
       for(var i=0;i<3;i++){
         return_obj.contents.body.contents[1].contents[i].contents[1].text = results[i].userName;
+        return_obj.contents.body.contents[1].contents[i].contents[2].text = "Lv"+String(results[i].level);
+      }
+      client.replyMessage(event.replyToken, return_obj);
+    }
+  });
+}
+
+//ランキング(クラス毎)取得
+function get_rank_class(event){
+  connection.query(`select * from class where id != 0 order by level desc;`,(error,results) => {
+    if(results){
+      var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+      return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.get_rank)));
+      for(var i=0;i<3;i++){
+        return_obj.contents.body.contents[1].contents[i].contents[1].text = `${Math.ceil(results[i].id/6)}-${results[i].id%6}`
         return_obj.contents.body.contents[1].contents[i].contents[2].text = "Lv"+String(results[i].level);
       }
       client.replyMessage(event.replyToken, return_obj);
@@ -356,8 +381,8 @@ function input_message(event){
 
   connection.query(`select * from events where keyword = '${text}' OR keyword2 = '${text}';`,(error,results) => {
     if(results.length!=0){
-      if(results[0].permise_1){
-        connection.query(`select * from log where userId ='${event.source.userId}' AND eventId = '${results[0].permise_1}' ;`,(error2,results2) => {
+      if(results[0].permise){
+        connection.query(`select * from log where userId ='${event.source.userId}' AND eventId = '${results[0].permise}' ;`,(error2,results2) => {
           if(results2.length==0) return;
           //発火(前提条件を満たす)
           else do_event(event,results[0]);
@@ -379,7 +404,9 @@ function do_event(event,event_data){
       return;
     }
     //Lv加算
-    connection.query(`update users set level = level + '${event_data.level}' where userId = '${event.source.userId}';`,(error,results) => {});
+    connection.query(`update users set level = level + '${event_data.level}' where userId = '${event.source.userId}';`);
+    //Lv加算(class)
+    connection.query(`update class set level = level + '${event_data.level}' where id = (select class from users where userId = '${event.source.userId}');`);
     //ログ追加
     connection.query(`insert into log value(null,'${event.source.userId}','${event_data.eventId}','${event_data.type}',cast( now() as datetime));`,(error,results) => {});
     //メッセージを書き換えて投げる
@@ -442,14 +469,14 @@ app.post("/api/read-spreadsheet",(req,res) => {
       const type      = ["謎解き","宝","その他"].indexOf(input[i][2]);
       const msg       = input[i][3] || "";
       const lv        = input[i][4] || "";
-      var permise_1 = (input[i][5] || "").split(",")[0];
-      if(permise_1 == "") permise_1 = "null";
+      var permise = (input[i][5] || "").split(",")[0];
+      if(permise == "") permise = "null";
       const keyword   = input[i][6] || "";
       const keyword2   = input[i][7] || "";
       const image     = input[i][9] || "";
       const link      = input[i][10] || "";
-      console.log(`insert into events value('${no}','${type}','${msg}','${lv}',${permise_1},'${keyword}','${keyword2}','${image}','${link}');`);
-      connection.query(`insert into events value('${no}','${type}','${msg}','${lv}',${permise_1},'${keyword}','${keyword2}','${image}','${link}');`,(error,results) => {});
+      console.log(`insert into events value('${no}','${type}','${msg}','${lv}',${permise},'${keyword}','${keyword2}','${image}','${link}');`);
+      connection.query(`insert into events value('${no}','${type}','${msg}','${lv}',${permise},'${keyword}','${keyword2}','${image}','${link}');`,(error,results) => {});
     }
     res.sendStatus(200);
   })

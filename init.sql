@@ -1,5 +1,11 @@
 CREATE DATABASE toinfes;
 USE toinfes;
+
+CREATE TABLE class (
+    id INT NOT NULL primary key,
+    level INT
+);
+
 CREATE TABLE users (
     userId VARCHAR(40) not null primary key,
     userName VARCHAR(64) not null,
@@ -12,12 +18,12 @@ CREATE TABLE events (
     type INT NOT NULL, -- 0 謎解き 1宝探し　2その他
     message TEXT,
     level INT,
-    permise_1 INT, -- 前提条件
+    permise INT, -- 前提条件
     keyword VARCHAR(64), -- 召喚キーワード
     keyword2 VARCHAR(64), -- 召喚キーワード(表記ゆれ)
     image VARCHAR(64), -- 画像ファイル名
     link VARCHAR(128), -- 遷移先リンク
-    foreign key (permise_1) REFERENCES events(eventId),
+    foreign key (permise) REFERENCES events(eventId),
     PRIMARY KEY (eventId)
 );
 
