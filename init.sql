@@ -25,6 +25,7 @@ CREATE TABLE log ( -- events内の実行を記録　登録などは扱わない�
     logId INT NOT NULL AUTO_INCREMENT,
     userId VARCHAR(40) not null,
     eventId INT not null,
+    type INT, -- 0 謎解き 1宝探し　2その他
     time DATETIME,
     foreign key (userId) REFERENCES users(userId),
     foreign key (eventId) REFERENCES events(eventId),

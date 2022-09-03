@@ -429,7 +429,8 @@ const __event_footer = {
 
 module.exports = { 
     not_registed : "ユーザー名の登録がまだのようです！" ,
-    add_friend : "あなたの名前を教えてください！", //友達追加時メッセージ
+    add_friend: "友達追加ありがとうございます！",
+    ask_name : "あなたの名前を教えてください！", //友達追加時メッセージ
     input_name : __input_name,
     input_done: "登録が完了しました！",
     get_rank : __get_rank,

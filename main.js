@@ -144,22 +144,26 @@ app.post("/api",(req,res) => {
     return;
   }
   const event = req.body.events[0];
-  //対話中ならば優先的に見る
-  if(user_status[event.source.userId]){
-    branch(event);
-    return;
+
+  if(event.type == "message"){
+    //対話中ならば優先的に見る
+    if(user_status[event.source.userId]){
+      branch(event);
+      return;
+    }
+    //未登録ユーザーかチェック
+    if(!user_registered[event.source.userId]){
+      follow(event,true);
+      return;
+    }
+  }else{
+    //友達追加時処理
+    if(event.type == "follow" && !user_status[event.source.userId]){
+      follow(event);
+      return;
+    }
+    return;//どれでもなければ破棄
   }
-  //未登録ユーザーかチェック
-  if(!user_registered[event.source.userId]){
-    follow(event,true);
-    return;
-  }
-  //友達追加時処理
-  if(event.type == "follow"){
-    follow(event);
-    return;
-  }
-  if(event.type != "message") return; //メッセージイベント以外は破棄
 
   const text = event.message.text;
   switch(text){
@@ -199,19 +203,17 @@ function branch(event){//user_statusが設定されている状態の場合(=対
 // ユーザー登録
 function follow (event,flag = false){
   //友達追加されたときに発生
-  //友達登録済 && ユーザーネーム未登録ユーザー向け処理
-  if(flag){
-    //client.replyMessage(event.replyToken, {type:'text',text:message.not_registed});
-  }
-  //DBにユーザーデータが存在するか検証
+  //DBにユーザーデータが存在するか検証(存在する場合、ブロック解除なので無視)
   connection.query(`SELECT * from users where userId = '${event.source.userId}';`,(error,results) => {
     console.log(results);
     if(results.length!=0) return;
     else{
       if(flag){
-        client.replyMessage(event.replyToken,[{type:'text',text:message.not_registed},{type:'text',text:message.add_friend}]);
+        //友達登録済 && ユーザーネーム未登録ユーザー向け処理
+        client.replyMessage(event.replyToken,[{type:'text',text:message.not_registed},{type:'text',text:message.ask_name}]);
       }else{
-        client.replyMessage(event.replyToken,{type:'text',text:message.add_friend});
+        //新規友達追加時処理
+        client.replyMessage(event.replyToken,[{type:'text',text:message.add_friend},{type:'text',text:message.ask_name}]);
       }
       user_status[event.source.userId] = "waitinputname";
     }
@@ -273,7 +275,9 @@ function inputgrade(event){
       break;
     default:
       //再送
-      client.replyMessage(event.replyToken, {type:'text',text:message.ask_grade});
+      var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+      return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.ask_grade)));
+      client.replyMessage(event.replyToken, return_obj);
   }
 }
 
@@ -306,7 +310,7 @@ function checkinputclass(event){
     //dbたたく
     const classArr = ["教職員/外来","1年1組","1年2組","1年3組","1年4組","1年5組","1年6組","2年1組","2年2組","2年3組","2年4組","2年5組","2年6組","3年1組","3年2組","3年3組","3年4組","3年5組","3年6組"];
     const userclass = classArr.indexOf(usergrade_tmp[event.source.userId]+userclass_tmp[event.source.userId]);
-    connection.query(`insert into users value('${event.source.userId}','${username_tmp[event.source.userId]}',0,${userclass});`,(error,results) => {
+    connection.query(`insert into users value('${event.source.userId}','${username_tmp[event.source.userId]}',1,${userclass});`,(error,results) => {
       if(results){
         client.replyMessage(event.replyToken, {type:'text',text:message.input_done});
         user_status[event.source.userId] = null;
