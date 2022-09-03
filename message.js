@@ -428,6 +428,7 @@ const __event_footer = {
 }
 
 module.exports = { 
+    img_source : img_source,
     not_registed : "ユーザー名の登録がまだのようです！" ,
     add_friend: "友達追加ありがとうございます！",
     ask_name : "あなたの名前を教えてください！", //友達追加時メッセージ

@@ -366,7 +366,7 @@ function get_rank_class(event){
       var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
       return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.get_rank)));
       for(var i=0;i<3;i++){
-        return_obj.contents.body.contents[1].contents[i].contents[1].text = `${Math.ceil(results[i].id/6)}-${results[i].id%6}`
+        return_obj.contents.body.contents[1].contents[i].contents[1].text = `${Math.ceil(results[i].id/5)}-${results[i].id%5}`
         return_obj.contents.body.contents[1].contents[i].contents[2].text = "Lv"+String(results[i].level);
       }
       client.replyMessage(event.replyToken, return_obj);
@@ -414,7 +414,8 @@ function do_event(event,event_data){
     return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.event_template)));
     return_obj.contents.body.contents[0].text = event_data.message;
     return_obj.contents.body.contents[1].text = `レベルが${event_data.level}上がった！`;
-    return_obj.contents.hero.url = event_data.image;
+    return_obj.contents.hero.url = message.img_source + event_data.image;
+    console.log(return_obj.contents.hero.url);
     if(event_data.type == 0){
       return_obj.contents.footer = message.event_footer;
       return_obj.contents.footer.contents[0].action.uri = event_data.link;
@@ -427,7 +428,7 @@ function do_event(event,event_data){
 function get_status(event){
   connection.query(`select * from users where userid = ?;`,[event.source.userId],(error,results) => {
     const name = results[0].userName;
-    const guild = (results[0].class == 0)?"None":`${Math.ceil(results[0].class/6)}-${results[0].class%6}`;
+    const guild = (results[0].class == 0)?"None":`${Math.ceil(results[0].class/6)}-${results[0].class%5}`;
     const level = String(results[0].level);
     connection.query(`select count(level > (select level from users where userId = ?) or null) from users;`,[event.source.userId],(error,results2) => {
       const rank = "#"+String(results2[0][Object.keys(results2[0])[0]]+1);
@@ -476,18 +477,12 @@ app.post("/api/read-spreadsheet",(req,res) => {
       const image     = input[i][9] || "";
       const link      = input[i][10] || "";
       console.log(`insert into events value('${no}','${type}','${msg}','${lv}',${permise},'${keyword}','${keyword2}','${image}','${link}');`);
-      connection.query(`insert into events value('${no}','${type}','${msg}','${lv}',${permise},'${keyword}','${keyword2}','${image}','${link}');`,(error,results) => {});
+      connection.query(`insert into events value('${no}','${type}','${msg}','${lv}',${permise},'${keyword}','${keyword2}','${image}','${link}');`);
     }
     res.sendStatus(200);
   })
 });
 
-//img host test
-app.get('/img', (req, res) => {
-  fs.readFile('./images/pers.PNG', (err, data) => {
-    res.type('png');
-    res.send(data);
-  });
-});
+app.use(express.static('public'));
 
 server.listen(port, () => console.log(`Listen : port ${port}!`));
