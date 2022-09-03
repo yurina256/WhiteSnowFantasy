@@ -426,7 +426,8 @@ const __event_footer = {
   flex: 0
 }
 
-module.exports = {
+module.exports = { 
+    not_registed : "ユーザー名の登録がまだのようです！" ,
     add_friend : "あなたの名前を教えてください！", //友達追加時メッセージ
     input_name : __input_name,
     input_done: "登録が完了しました！",

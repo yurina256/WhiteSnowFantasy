@@ -24,6 +24,7 @@ const server = require('https').createServer({
 const line = require('@line/bot-sdk');
 const crypto = require('crypto');
 
+
 const line_config = {
     channelAccessToken: config.line_channelAccessToken,
     channelSecret: config.line_channelSecret
@@ -38,10 +39,12 @@ const connection = mysql.createConnection({
   user: config.db_user,
   password: config.db_pw,
 });
-connection.query(`use toinfes`);
+connection.query(`use ${config.table}`);
 
 //グローバル一時変数
 var user_status = Array(); //入力待ち状態-ここに値が入っている場合、次の入力の解釈を変える
+
+var user_registered = Array(); //ユーザーが登録済か
 
 var username_tmp = Array(); //ユーザー名設定対話中の一時変数
 
@@ -57,6 +60,16 @@ const flex_template = {
  }
 Object.freeze(flex_template);
 
+//起動時処理
+//有効なユーザーの一覧を持ってくる
+connection.query(`SELECT userId FROM users;`,(error, results) => {
+  for(var i=0;i<results.length;i++){
+    user_registered[results[i].userId] = true;
+  }
+  console.log("initialisation success");
+  console.log(user_registered);
+}
+);
 
 //処理系ここから
 
@@ -120,11 +133,17 @@ app.post("/api",(req,res) => {
     return;
   }
   const event = req.body.events[0];
-  console.log(event);
+  //対話中ならば優先的に見る
   if(user_status[event.source.userId]){
     branch(event);
     return;
   }
+  //未登録ユーザーかチェック
+  if(!user_registered[event.source.userId]){
+    follow(event,true);
+    return;
+  }
+  //友達追加時処理
   if(event.type == "follow"){
     follow(event);
     return;
@@ -140,16 +159,22 @@ app.post("/api",(req,res) => {
   input_message(event);
 });
 
-function follow (event){
+function follow (event,flag = false){
   //友達追加されたときに発生
-  //ブロック解除でも同じのが飛ぶので考慮
-
+  //友達登録済 && ユーザーネーム未登録ユーザー向け処理
+  if(flag){
+    //client.replyMessage(event.replyToken, {type:'text',text:message.not_registed});
+  }
   //DBにユーザーデータが存在するか検証
   connection.query(`SELECT * from users where userId = '${event.source.userId}';`,(error,results) => {
     console.log(results);
     if(results.length!=0) return;
     else{
-      client.replyMessage(event.replyToken, {type:'text',text:message.add_friend});
+      if(flag){
+        client.replyMessage(event.replyToken,[{type:'text',text:message.not_registed},{type:'text',text:message.add_friend}]);
+      }else{
+        client.replyMessage(event.replyToken,{type:'text',text:message.add_friend});
+      }
       user_status[event.source.userId] = "waitinputname";
     }
   });
@@ -181,13 +206,9 @@ function inputname(event){
   var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
   return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.input_name)));;
   username_tmp[event.source.userId] = event.message.text;
-  //console.log(return_obj);
-  //console.log(return_obj.contents);
   return_obj.contents.body.contents[0].text = event.message.text + return_obj.contents.body.contents[0].text;
-  //console.log("msg:"+return_obj.contents.body.contents[0].text);
   client.replyMessage(event.replyToken, return_obj);
   user_status[event.source.userId] = "checkinputname";
-  //console.log("f:"+JSON.stringify(flex_template));
 }
 
 function checkinputname(event){
@@ -197,14 +218,6 @@ function checkinputname(event){
     var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
     return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.ask_grade)));
     client.replyMessage(event.replyToken, return_obj);
-
-    //dbたたかない　あとでけす
-    //connection.query(`insert into users value('${event.source.userId}','${username_tmp[event.source.userId]}',0,0);`,(error,results) => {
-    //  if(results){
-    //    client.replyMessage(event.replyToken, {type:'text',text:message.input_name_done});
-    //    user_status[event.source.userId] = null;
-    //  }
-    //});
   }else if(event.message.text == "いいえ"){
     //もっかい入力させる
     client.replyMessage(event.replyToken, {type:'text',text:message.add_friend});
@@ -281,6 +294,7 @@ function checkinputclass(event){
       if(results){
         client.replyMessage(event.replyToken, {type:'text',text:message.input_done});
         user_status[event.source.userId] = null;
+        user_registered[event.source.userId] = true;
       }
     });
   }else if(event.message.text == "いいえ"){
@@ -350,8 +364,7 @@ function do_event(event,event_data){
     return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.event_template)));
     return_obj.contents.body.contents[0].text = event_data.message;
     return_obj.contents.body.contents[1].text = `レベルが${event_data.level}上がった！`;
-    return_obj.contents.hero.url += event_data.image;
-    console.log(return_obj.contents.hero.url);
+    return_obj.contents.hero.url = event_data.image;
     if(event_data.type == 0){
       return_obj.contents.footer = message.event_footer;
       return_obj.contents.footer.contents[0].action.uri = event_data.link;
@@ -389,10 +402,9 @@ app.post("/api/read-spreadsheet",(req,res) => {
 });
 
 //img host test
-app.get('/img/:filename', (req, res) => {
-  console.log(`./images/${req.params.filename}`);
-  fs.readFile(`./images/${req.params.filename}`, (err, data) => {
-    res.type('jpg');
+app.get('/img', (req, res) => {
+  fs.readFile('./images/pers.PNG', (err, data) => {
+    res.type('png');
     res.send(data);
   });
 });
