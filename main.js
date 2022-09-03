@@ -1,11 +1,11 @@
 var config = require("./config.js");
 var message = require("./message.js");
 var request = require('request');
+var fs = require('fs');
 
 //express
 var express = require("express");
 var app = express();
-const fs = require('fs');
 const port = 443;
 
 app.use(express.json());
@@ -41,7 +41,7 @@ const connection = mysql.createConnection({
 });
 connection.query(`use ${config.table}`);
 
-//グローバル一時変数
+//グローバル一時変数,定数
 var user_status = Array(); //入力待ち状態-ここに値が入っている場合、次の入力の解釈を変える
 
 var user_registered = Array(); //ユーザーが登録済か
@@ -51,6 +51,9 @@ var username_tmp = Array(); //ユーザー名設定対話中の一時変数
 var usergrade_tmp = Array(); //クラス設定対話中の一時変数
 
 var userclass_tmp = Array(); //クラス設定対話中の一時変数
+
+var count_mystery;
+var count_treasure;
 
 //定数
 const flex_template = {
@@ -70,6 +73,14 @@ connection.query(`SELECT userId FROM users;`,(error, results) => {
   console.log(user_registered);
 }
 );
+//謎の数を持ってくる
+connection.query(`SELECT count(*) FROM events where type = 0;`,(error, results) => {
+  count_mystery =  results[0][Object.keys(results[0])[0]]+1;
+});
+//宝の数を持ってくる
+connection.query(`SELECT count(*) FROM events where type = 1;`,(error, results) => {
+  count_treasure =  results[0][Object.keys(results[0])[0]]+1;
+});
 
 //処理系ここから
 
@@ -151,34 +162,17 @@ app.post("/api",(req,res) => {
   if(event.type != "message") return; //メッセージイベント以外は破棄
 
   const text = event.message.text;
-  if(text == "ランキング"){
-    get_rank(event);
-    return;
+  switch(text){
+    case "ランキング":
+      get_rank(event);
+      break;
+    case "ステータス":
+      get_status(event);
+      break;
   }
   //どれでもない場合、キーワードが入力されたものとして扱う
   input_message(event);
 });
-
-function follow (event,flag = false){
-  //友達追加されたときに発生
-  //友達登録済 && ユーザーネーム未登録ユーザー向け処理
-  if(flag){
-    //client.replyMessage(event.replyToken, {type:'text',text:message.not_registed});
-  }
-  //DBにユーザーデータが存在するか検証
-  connection.query(`SELECT * from users where userId = '${event.source.userId}';`,(error,results) => {
-    console.log(results);
-    if(results.length!=0) return;
-    else{
-      if(flag){
-        client.replyMessage(event.replyToken,[{type:'text',text:message.not_registed},{type:'text',text:message.add_friend}]);
-      }else{
-        client.replyMessage(event.replyToken,{type:'text',text:message.add_friend});
-      }
-      user_status[event.source.userId] = "waitinputname";
-    }
-  });
-}
 
 function branch(event){//user_statusが設定されている状態の場合(=対話中の場合)の振り分け
   const status = user_status[event.source.userId];
@@ -200,6 +194,28 @@ function branch(event){//user_statusが設定されている状態の場合(=対
       checkinputclass(event);
       break;
   }
+}
+
+// ユーザー登録
+function follow (event,flag = false){
+  //友達追加されたときに発生
+  //友達登録済 && ユーザーネーム未登録ユーザー向け処理
+  if(flag){
+    //client.replyMessage(event.replyToken, {type:'text',text:message.not_registed});
+  }
+  //DBにユーザーデータが存在するか検証
+  connection.query(`SELECT * from users where userId = '${event.source.userId}';`,(error,results) => {
+    console.log(results);
+    if(results.length!=0) return;
+    else{
+      if(flag){
+        client.replyMessage(event.replyToken,[{type:'text',text:message.not_registed},{type:'text',text:message.add_friend}]);
+      }else{
+        client.replyMessage(event.replyToken,{type:'text',text:message.add_friend});
+      }
+      user_status[event.source.userId] = "waitinputname";
+    }
+  });
 }
 
 function inputname(event){
@@ -313,6 +329,7 @@ function checkinputclass(event){
   }
 }
 
+//ランキング(全ユーザー)取得
 function get_rank(event){
   //ランキング取得
   connection.query(`select * from users order by level desc;`,(error,results) => {
@@ -328,6 +345,7 @@ function get_rank(event){
   });
 }
 
+//キーワード送信
 function input_message(event){
   //キーワード受容判定
   const text = event.message.text.trim();
@@ -348,6 +366,7 @@ function input_message(event){
   });
 }
 
+//イベント実行
 function do_event(event,event_data){
   //既に達成したイベントか判定
   connection.query(`select * from log where userId = '${event.source.userId}' and eventId = '${event_data.eventId}';`,(error,results) => {
@@ -358,7 +377,7 @@ function do_event(event,event_data){
     //Lv加算
     connection.query(`update users set level = level + '${event_data.level}' where userId = '${event.source.userId}';`,(error,results) => {});
     //ログ追加
-    connection.query(`insert into log value(null,'${event.source.userId}','${event_data.eventId}',cast( now() as datetime));`,(error,results) => {});
+    connection.query(`insert into log value(null,'${event.source.userId}','${event_data.eventId}','${event_data.type}',cast( now() as datetime));`,(error,results) => {});
     //メッセージを書き換えて投げる
     var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
     return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.event_template)));
@@ -370,6 +389,37 @@ function do_event(event,event_data){
       return_obj.contents.footer.contents[0].action.uri = event_data.link;
     }
     client.replyMessage(event.replyToken,return_obj);
+  });
+}
+
+//ユーザーデータ取得
+function get_status(event){
+  connection.query(`select * from users where userid = ?;`,[event.source.userId],(error,results) => {
+    const name = results[0].userName;
+    const guild = (results[0].class == 0)?"None":`${Math.ceil(results[0].class/6)}-${results[0].class%6}`;
+    const level = String(results[0].level);
+    connection.query(`select count(level > (select level from users where userId = ?) or null) from users;`,[event.source.userId],(error,results2) => {
+      const rank = "#"+String(results2[0][Object.keys(results2[0])[0]]+1);
+      connection.query(`select count(type = 0 or null) as mystery,count(type = 1 or null) as treasure from log where userId = ?;`,[event.source.userId],(error,results3) => {
+        const mystery_percent = Math.ceil(results3[0].mystery/count_mystery * 100) + "%";
+        const treasure_percent = Math.ceil(results3[0].treasure/count_treasure * 100)+ "%";
+        
+        //組み立て
+        var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+        return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.user_status)));
+        return_obj.contents.header.contents[0].contents[1].text = name;
+        return_obj.contents.header.contents[1].contents[0].contents[1].text = guild;
+        return_obj.contents.header.contents[1].contents[1].contents[1].text = level;
+        return_obj.contents.header.contents[1].contents[2].contents[1].text = rank;
+        return_obj.contents.body.contents[1].text = mystery_percent;
+        return_obj.contents.body.contents[2].contents[0].width = mystery_percent;
+        if(mystery_percent == "100%")return_obj.contents.body.contents[1].text = message.progressbar_compleat;
+        return_obj.contents.body.contents[4].text = treasure_percent;
+        return_obj.contents.body.contents[5].contents[0].width = treasure_percent;
+        if(treasure_percent == "100%")return_obj.contents.body.contents[4].text = message.progressbar_compleat;
+        client.replyMessage(event.replyToken,return_obj);
+      });
+    });
   });
 }
 

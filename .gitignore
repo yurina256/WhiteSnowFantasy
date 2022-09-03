@@ -1,5 +1,4 @@
 *-secret.md
 /node_modules
 *.pem
-config.js
 /images/*.jpg

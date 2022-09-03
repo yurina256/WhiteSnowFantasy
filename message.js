@@ -1,4 +1,5 @@
 const img_source = "https://be.toinfes-api-dev.com/img/";
+var fs = require('fs');
 
 const __input_name = {
     type: "bubble",
@@ -437,6 +438,8 @@ module.exports = {
     check_class : __check_class,
     event_template : __event_template,
     event_footer : __event_footer,
-    used_keyword : "既に達成したイベントです！"
+    used_keyword : "既に達成したイベントです！",
+    progressbar_compleat : "Compleat!!",
+    user_status : JSON.parse(fs.readFileSync('./flex_templates/user_status.json', 'utf8'))
 };
 //改行は\n

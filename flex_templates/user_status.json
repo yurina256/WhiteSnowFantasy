@@ -1,0 +1,165 @@
+{
+    "type": "bubble",
+    "header": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "text",
+              "text": "username",
+              "color": "#ffffff66",
+              "size": "sm"
+            },
+            {
+              "type": "text",
+              "text": "[username]",
+              "color": "#ffffff",
+              "size": "xl",
+              "flex": 4,
+              "weight": "bold",
+              "margin": "xs"
+            }
+          ]
+        },
+        {
+          "type": "box",
+          "layout": "horizontal",
+          "contents": [
+            {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "guild",
+                  "color": "#ffffff66",
+                  "size": "sm"
+                },
+                {
+                  "type": "text",
+                  "text": "[guild_name]",
+                  "color": "#ffffff",
+                  "size": "xl",
+                  "flex": 4,
+                  "weight": "bold"
+                }
+              ]
+            },
+            {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "level",
+                  "color": "#ffffff66",
+                  "size": "sm"
+                },
+                {
+                  "type": "text",
+                  "text": "[user_level]",
+                  "color": "#ffffff",
+                  "size": "xl",
+                  "flex": 4,
+                  "weight": "bold"
+                }
+              ]
+            },
+            {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [
+                {
+                  "type": "text",
+                  "text": "rank",
+                  "color": "#ffffff66",
+                  "size": "sm"
+                },
+                {
+                  "type": "text",
+                  "text": "[user_rank]",
+                  "color": "#ffffff",
+                  "size": "xl",
+                  "flex": 4,
+                  "weight": "bold"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "paddingAll": "20px",
+      "backgroundColor": "#3d3d3d",
+      "height": "140px",
+      "paddingTop": "22px",
+      "spacing": "md"
+    },
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "text",
+          "text": "解いた謎",
+          "weight": "bold"
+        },
+        {
+          "type": "text",
+          "text": "50%"
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [],
+              "width": "50%",
+              "backgroundColor": "#333333",
+              "height": "6px"
+            }
+          ],
+          "margin": "md",
+          "height": "6px",
+          "backgroundColor": "#bbbbbb",
+          "spacing": "none"
+        },
+        {
+          "type": "text",
+          "text": "見つけた宝",
+          "weight": "bold",
+          "margin": "lg"
+        },
+        {
+          "type": "text",
+          "text": "50%"
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "box",
+              "layout": "vertical",
+              "contents": [],
+              "width": "50%",
+              "backgroundColor": "#333333",
+              "height": "6px"
+            }
+          ],
+          "margin": "sm",
+          "height": "6px",
+          "backgroundColor": "#bbbbbb",
+          "spacing": "none"
+        }
+      ],
+      "backgroundColor": "#f0f0f0",
+      "spacing": "xs",
+      "paddingTop": "xl"
+    }
+  }
