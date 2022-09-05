@@ -1,3 +1,4 @@
+//require
 var config = require("./config.js");
 var message = require("./message.js");
 var request = require('request');
@@ -34,6 +35,7 @@ const client = new line.Client(line_config);
 //MySQL
 const mysql = require('mysql');
 const { event_template } = require("./message.js");
+const { isGeneratorFunction } = require("util/types");
 const connection = mysql.createConnection({
   host: config.db_endpoint,
   user: config.db_user,
@@ -91,8 +93,8 @@ connection.query(`DELETE from class;`,(error, results) => {
 
 //処理系ここから
 
-function sign_check(req,res){
-  const signature = crypto.createHmac("SHA256", line_config['channelSecret']).update(JSON.stringify(req.body)).digest("base64");
+function sign_check(req,res,config){
+  const signature = crypto.createHmac("SHA256", config['channelSecret']).update(JSON.stringify(req.body)).digest("base64");
   const checkHeader = req.headers['x-line-signature'];
   console.log(checkHeader);
   if(signature !== checkHeader){
@@ -144,7 +146,7 @@ app.get("/api/user-all",(req,res) => {
 app.post("/api",(req,res) => {
   //LINE用
   //署名検証
-  sign_check(req,res);
+  sign_check(req,res,line_config);
   if(req.body.events.length == 0){
     //LINE側からの疎通チェック
     console.log("webhook check ok");
@@ -462,11 +464,13 @@ app.post("/api/read-spreadsheet",(req,res) => {
     method: 'GET'
   }
   request(options, function (error, response, body) {
+    connection.query(`SET foreign_key_checks = 0;`);
+    connection.query(`DELETE from events;`);
     input = JSON.parse(body).values;
     console.log(input);
     for(var i=1;i<input.length;i++){
       const no = input[i][0];
-      if(no == "") continue;
+      if(Number.isNaN(parseInt(no))) continue;
       const type      = ["謎解き","宝","その他"].indexOf(input[i][2]);
       const msg       = input[i][3] || "";
       const lv        = input[i][4] || "";
@@ -483,6 +487,114 @@ app.post("/api/read-spreadsheet",(req,res) => {
   })
 });
 
+//静的ファイル配信
 app.use(express.static('public'));
+
+// 運営アカウント #############################################################################################################
+
+const line_op_config = {
+  channelAccessToken: config.line_op_channelAccessToken,
+  channelSecret: config.line_op_channelSecret
+}
+const client_op = new line.Client(line_op_config);
+
+var op_user_status = Array(); 
+var broadcast_tmp = Array(); //ユーザーごとに持つ
+
+app.post("/operation",(req,res) => {
+  //LINE用
+  //署名検証
+  sign_check(req,res,line_op_config);
+  console.log("admin_req");
+  if(req.body.events.length == 0){
+    //LINE側からの疎通チェック
+    console.log("webhook check ok");
+    res.sendStatus(200);
+    return;
+  }
+  const event = req.body.events[0];
+  if(event.type != "message") return;
+
+  if(op_user_status[event.source.userId]){
+    //op_branch
+  }
+
+  const text = event.message.text;
+
+  if(op_user_status[event.source.userId] == "waitbroadcasttext"){
+    broadcast_tmp[event.source.userId] = event.message.text;
+    var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+    return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.check_class)));
+    return_obj.contents.body.contents[0].text = "本当によいですか？";
+    client_op.replyMessage(event.replyToken, return_obj);
+    op_user_status[event.source.userId] = "checkbroadcasttext";
+    return;
+  };
+  if(op_user_status[event.source.userId] == "checkbroadcasttext"){
+    if(text == "はい"){
+      client.broadcast({type:'text',text:broadcast_tmp[event.source.userId]});
+      client_op.replyMessage(event.replyToken,{type:'text',text:"実行しました。"});
+    }else{
+      client_op.replyMessage(event.replyToken,{type:'text',text:"実行を中止します。"});
+    }
+    broadcast_tmp[event.source.userId] = null;
+    op_user_status[event.source.userId] = null;
+    return;
+  }
+  if(op_user_status[event.source.userId] == "checkreadsheet"){
+    if(text == "はい"){
+      read_sheet();
+      client_op.replyMessage(event.replyToken,{type:'text',text:"実行しました。"});
+    }else{
+      client_op.replyMessage(event.replyToken,{type:'text',text:"実行を中止します。"});
+    }
+    op_user_status[event.source.userId] = null;
+    return;
+  };
+
+  if(text == "全員にテキスト配信"){
+    client_op.replyMessage(event.replyToken,{type:'text',text:"配信するテキストを入力してください"});
+    op_user_status[event.source.userId] = "waitbroadcasttext";
+    broadcast_tmp[event.source.userId] = text;
+    return;
+  }
+  if(text == "スプレッドシート読み込み"){
+    var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+    return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.check_class)));
+    return_obj.contents.body.contents[0].text = "現在サーバー側にあるイベントデータは削除されます。本当によいですか？";
+    client_op.replyMessage(event.replyToken,return_obj);
+    op_user_status[event.source.userId] = "checkreadsheet";
+  }
+});
+
+function read_sheet(){
+    //スプシ読み込み→DBに投げる
+    var options = {
+      url: config.sheet_link,
+      method: 'GET'
+    }
+    request(options, function (error, response, body) {
+      connection.query(`SET foreign_key_checks = 0;`);
+      connection.query(`DELETE from events;`);
+      input = JSON.parse(body).values;
+      console.log(input);
+      for(var i=1;i<input.length;i++){
+        const no = input[i][0];
+        if(Number.isNaN(parseInt(no))) continue;
+        const type      = ["謎解き","宝","その他"].indexOf(input[i][2]);
+        const msg       = input[i][3] || "";
+        const lv        = input[i][4] || "";
+        var permise = (input[i][5] || "").split(",")[0];
+        if(permise == "") permise = "null";
+        const keyword   = input[i][6] || "";
+        const keyword2   = input[i][7] || "";
+        const image     = input[i][9] || "";
+        const link      = input[i][10] || "";
+        console.log(`insert into events value('${no}','${type}','${msg}','${lv}',${permise},'${keyword}','${keyword2}','${image}','${link}');`);
+        connection.query(`insert into events value('${no}','${type}','${msg}','${lv}',${permise},'${keyword}','${keyword2}','${image}','${link}');`);
+      }
+    })
+    return;
+}
 
 server.listen(port, () => console.log(`Listen : port ${port}!`));
