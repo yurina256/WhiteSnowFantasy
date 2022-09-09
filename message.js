@@ -384,11 +384,7 @@ const __event_template = {
     url: img_source,
     size: "full",
     aspectRatio: "20:13",
-    aspectMode: "cover",
-    action: {
-      type: "uri",
-      uri: "http://whitesnowf.wpx.jp/"
-    }
+    aspectMode: "cover"
   },
   body: {
     type: "box",

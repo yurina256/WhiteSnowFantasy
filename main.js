@@ -155,6 +155,13 @@ app.post("/api",(req,res) => {
   const event = req.body.events[0];
 
   if(event.type == "message"){
+
+    //簡易バリデーション
+    var regexp = /\`|\"|\'/;
+    if(regexp.test(event.message.text)){
+      client.replyMessage(event.replyToken,{type:'text',text:"使用できない記号が含まれています！"});
+      return;
+    }
     //対話中ならば優先的に見る
     if(user_status[event.source.userId]){
       branch(event);
@@ -179,7 +186,7 @@ app.post("/api",(req,res) => {
     case "ランキング":
       get_rank(event);
       break;
-    case "クラスランキング":
+    case "クラスランキング"://壊れたのでなおす
       get_rank_class(event);
       break;
     case "ステータス":
@@ -187,6 +194,15 @@ app.post("/api",(req,res) => {
       break;
     case "進行状況":
       get_progress(event);
+      break;
+    case "狩人ルートのヒントを見る":
+      get_hint(event,0);
+      break;
+    case "小人ルートのヒントを見る":
+      get_hint(event,1);
+      break;
+    case "従者ルートのヒントを見る":
+      get_hint(event,2);
       break;
   }
   //どれでもない場合、キーワードが入力されたものとして扱う
@@ -382,7 +398,7 @@ function get_rank_class(event){
 function input_message(event){
   //キーワード受容判定
   const text = event.message.text.trim();
-
+  console.log(text);
   connection.query(`select * from events where keyword = '${text}' OR keyword2 = '${text}';`,(error,results) => {
     if(results.length!=0){
       if(results[0].permise_1){
@@ -422,9 +438,10 @@ function do_event(event,event_data){
     return_obj.contents.hero.url = message.img_source + event_data.image;
     console.log(return_obj.contents.hero.url);
     if(event_data.type == 0){
-      return_obj.contents.footer = message.event_footer;
-      return_obj.contents.footer.contents[0].action.uri = event_data.next_link;
-
+      if(event_data.eventId != 18){
+        return_obj.contents.footer = message.event_footer;
+        return_obj.contents.footer.contents[0].action.uri = event_data.next_link;
+      }
       //暫定実装
       const route_a = [1,15,2,3,4,5,19,0];
       const a_point = route_a.indexOf(event_data.eventId);
@@ -447,8 +464,9 @@ function do_event(event,event_data){
     const add_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
     add_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.last_stage)));
 
-    if([5,9,14].indexOf(event_data.eventId) == -1){
+    if([19,9,14].indexOf(event_data.eventId) == -1){
       client.replyMessage(event.replyToken,return_obj);
+      return;
     }
     connection.query(`select * from users where userid = ?;`,[event.source.userId],(error,results_user) => {
       if(results_user[0].route_a_next == 0 && results_user[0].route_b_next == 0 && results_user[0].route_c_next == 0){
@@ -543,6 +561,29 @@ function get_progress(event){
     });
   });
   return;
+}
+
+function get_hint(event,route){
+
+  connection.query(`select * from users where userId = ?;`,[event.source.userId],(error,results) => {
+    switch(route){
+      case 0:
+        connection.query(`select * from events where eventId = ?;`,[results[0].route_a_next],(error,results2) => {
+          client.replyMessage(event.replyToken,{type:'text',text:results2[0].hint});
+        });
+      break;
+      case 1:
+        connection.query(`select * from events where eventId = ?;`,[results[0].route_b_next],(error,results2) => {
+          client.replyMessage(event.replyToken,{type:'text',text:results2[0].hint});
+        });
+      break;
+      case 2:
+        connection.query(`select * from events where eventId = ?;`,[results[0].route_c_next],(error,results2) => {
+          client.replyMessage(event.replyToken,{type:'text',text:results2[0].hint});
+        });
+      break;
+    }   
+  });
 }
 
 app.post("/api/read-spreadsheet",(req,res) => {
