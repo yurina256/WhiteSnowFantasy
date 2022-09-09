@@ -35,7 +35,6 @@ const client = new line.Client(line_config);
 //MySQL
 const mysql = require('mysql');
 const { event_template } = require("./message.js");
-const { isGeneratorFunction } = require("util/types");
 const connection = mysql.createConnection({
   host: config.db_endpoint,
   user: config.db_user,
@@ -185,6 +184,9 @@ app.post("/api",(req,res) => {
       break;
     case "ステータス":
       get_status(event);
+      break;
+    case "進行状況":
+      get_progress(event);
       break;
   }
   //どれでもない場合、キーワードが入力されたものとして扱う
@@ -421,10 +423,10 @@ function do_event(event,event_data){
     console.log(return_obj.contents.hero.url);
     if(event_data.type == 0){
       return_obj.contents.footer = message.event_footer;
-      return_obj.contents.footer.contents[0].action.uri = event_data.link;
+      return_obj.contents.footer.contents[0].action.uri = event_data.next_link;
 
       //暫定実装
-      const route_a = [1,15,2,3,4,5,0];
+      const route_a = [1,15,2,3,4,5,19,0];
       const a_point = route_a.indexOf(event_data.eventId);
       if(a_point != -1){
         connection.query(`update users set route_a_next = ${route_a[a_point+1]} where userId = '${event.source.userId}';`);
@@ -492,19 +494,54 @@ function get_status(event){
 
 
 function get_progress(event){
+  //進捗状況取得 -　動くの優先なので後で書き直す
   var return_herder = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
   return_herder.contents = Object.assign({}, JSON.parse(JSON.stringify(message.continue_header)));
-
-  var return_route_1 = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
-  return_route_1.contents = Object.assign({}, JSON.parse(JSON.stringify(message.continue_route)));
-
-
-  var return_route_2 = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
-  return_route_2.contents = Object.assign({}, JSON.parse(JSON.stringify(message.continue_route)));
-  
-  var return_route_3 = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
-  return_route_3.contents = Object.assign({}, JSON.parse(JSON.stringify(message.continue_route)));
-
+  connection.query(`select * from users where userId = ?;`,[event.source.userId],(error,results) => {
+    console.log(results);
+    var return_route_1 = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+    return_route_1.contents = Object.assign({}, JSON.parse(JSON.stringify(message.continue_route)));
+    return_route_1.contents.body.contents[0].text = "狩人ルート";
+    connection.query(`select * from events where eventId = ?;`,[results[0].route_a_next],(error,results2) => {
+      if(results[0].route_a_next != 0){
+        return_route_1.contents.body.contents[1].text = results2[0].name;
+        return_route_1.contents.footer.contents[0].action.uri = results2[0].link;
+        return_route_1.contents.footer.contents[1].action.text = "狩人ルートのヒントを見る";
+      }else{
+        return_route_1.contents.body.contents[1].text = "complete!"
+        return_route_1.contents.footer = null;
+      }
+      var return_route_2 = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+      return_route_2.contents = Object.assign({}, JSON.parse(JSON.stringify(message.continue_route)));
+      return_route_2.contents.body.contents[0].text = "小人ルート";
+      connection.query(`select * from events where eventId = ?;`,[results[0].route_b_next],(error,results3) => {
+        if(results[0].route_b_next != 0){
+          return_route_2.contents.body.contents[1].text = results3[0].name;
+          return_route_2.contents.footer.contents[0].action.uri = results3[0].link;
+          return_route_2.contents.footer.contents[1].action.text = "小人ルートのヒントを見る";
+        }else{
+          return_route_2.contents.body.contents[1].text = "complete!"
+          return_route_2.contents.footer = null;
+        }
+    
+    
+      var return_route_3 = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+      return_route_3.contents = Object.assign({}, JSON.parse(JSON.stringify(message.continue_route)));
+      return_route_3.contents.body.contents[0].text = "従者ルート";
+      connection.query(`select * from events where eventId = ?;`,[results[0].route_c_next],(error,results4) => {
+        if(results[0].route_c_next != 0){
+          return_route_3.contents.body.contents[1].text = results4[0].name;
+          return_route_3.contents.footer.contents[0].action.uri = results4[0].link;
+          return_route_3.contents.footer.contents[1].action.text = "従者ルートのヒントを見る";
+        }else{
+          return_route_3.contents.body.contents[1].text = "complete!"
+          return_route_3.contents.footer = null;
+        }
+        client.replyMessage(event.replyToken,[return_herder,return_route_1,return_route_2,return_route_3]);
+      });
+      });
+    });
+  });
   return;
 }
 
@@ -517,8 +554,9 @@ app.post("/api/read-spreadsheet",(req,res) => {
   request(options, function (error, response, body) {
     connection.query(`SET foreign_key_checks = 0;`);
     connection.query(`DELETE from events;`);
+
     input = JSON.parse(body).values;
-    console.log(input);
+    //console.log(input);
     for(var i=1;i<input.length;i++){
       const no = input[i][0];
       if(Number.isNaN(parseInt(no))) continue;
@@ -535,9 +573,12 @@ app.post("/api/read-spreadsheet",(req,res) => {
       const keyword   = input[i][6] || "";
       const keyword2   = input[i][7] || "";
       const image     = input[i][9] || "";
-      const link      = input[i][10] || "";
-      console.log(`insert into events value('${no}','${type}','${msg}','${lv}',${permise_1},${permise_2},${permise_3},'${keyword}','${keyword2}','${image}','${link}');`);
-      connection.query(`insert into events value('${no}','${type}','${msg}','${lv}',${permise_1},${permise_2},${permise_3},'${keyword}','${keyword2}','${image}','${link}');`);
+      const next_link      = input[i][10] || "";
+      const hint      = input[i][11] || "";
+      const name      = input[i][1] || "";
+      const link      = input[i][12] || "";
+      console.log(`insert into events value('${no}','${type}','${msg}','${lv}',${permise_1},${permise_2},${permise_3},'${keyword}','${keyword2}','${image}','${next_link}','${name}','${hint}','${link}');`);
+      connection.query(`insert into events value('${no}','${type}','${msg}','${lv}',${permise_1},${permise_2},${permise_3},'${keyword}','${keyword2}','${image}','${next_link}','${name}','${hint}','${link}');`);
     }
     res.sendStatus(200);
   })
@@ -626,7 +667,7 @@ app.post("/operation",(req,res) => {
 function read_sheet(){
     //スプシ読み込み→DBに投げる
     var options = {
-      url: config.sheet_link,
+      url: config.sheet_next_link,
       method: 'GET'
     }
     request(options, function (error, response, body) {
@@ -645,9 +686,9 @@ function read_sheet(){
         const keyword   = input[i][6] || "";
         const keyword2   = input[i][7] || "";
         const image     = input[i][9] || "";
-        const link      = input[i][10] || "";
-        console.log(`insert into events value('${no}','${type}','${msg}','${lv}',${permise},'${keyword}','${keyword2}','${image}','${link}');`);
-        connection.query(`insert into events value('${no}','${type}','${msg}','${lv}',${permise},'${keyword}','${keyword2}','${image}','${link}');`);
+        const next_link      = input[i][10] || "";
+        console.log(`insert into events value('${no}','${type}','${msg}','${lv}',${permise},'${keyword}','${keyword2}','${image}','${next_link}');`);
+        connection.query(`insert into events value('${no}','${type}','${msg}','${lv}',${permise},'${keyword}','${keyword2}','${image}','${next_link}');`);
       }
     })
     return;

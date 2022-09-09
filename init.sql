@@ -27,7 +27,10 @@ CREATE TABLE events (
     keyword VARCHAR(64), -- 召喚キーワード
     keyword2 VARCHAR(64), -- 召喚キーワード(表記ゆれ)
     image VARCHAR(64), -- 画像ファイル名
-    link VARCHAR(128), -- 遷移先リンク
+    next_link VARCHAR(128), -- 遷移先リンク
+    name VARCHAR(128), -- イベント名
+    hint text,
+    link VARCHAR(128),
     foreign key (permise_1) REFERENCES events(eventId),
     foreign key (permise_2) REFERENCES events(eventId),
     foreign key (permise_3) REFERENCES events(eventId),

@@ -2,19 +2,23 @@
     "type": "bubble",
     "body": {
       "type": "box",
-      "layout": "vertical",
+      "layout": "horizontal",
       "contents": [
         {
           "type": "text",
-          "text": "Aルート:[進行中の謎]",
+          "text": "Cルート",
           "size": "lg",
-          "weight": "regular"
+          "weight": "bold"
+        },
+        {
+          "type": "text",
+          "text": "hogehuga"
         }
       ]
     },
     "footer": {
       "type": "box",
-      "layout": "vertical",
+      "layout": "horizontal",
       "contents": [
         {
           "type": "button",
@@ -23,7 +27,7 @@
           "margin": "none",
           "action": {
             "type": "uri",
-            "label": "謎をもう一度見る",
+            "label": "謎を見る",
             "uri": "https://linecorp.com"
           }
         },
@@ -31,7 +35,7 @@
           "type": "button",
           "action": {
             "type": "message",
-            "label": "action",
+            "label": "ヒントを見る",
             "text": "Aルートのヒント"
           },
           "style": "secondary",
