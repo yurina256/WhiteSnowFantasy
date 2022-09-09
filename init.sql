@@ -48,6 +48,23 @@ CREATE TABLE log ( -- events内の実行を記録　登録などは扱わない�
     PRIMARY KEY (logID)
 );
 
+-- class
+insert into class value(0,0);
+insert into class value(1,0);
+insert into class value(2,0);
+insert into class value(3,0);
+insert into class value(4,0);
+insert into class value(5,0);
+insert into class value(6,0);
+insert into class value(7,0);
+insert into class value(8,0);
+insert into class value(9,0);
+insert into class value(10,0);
+insert into class value(11,0);
+insert into class value(12,0);
+insert into class value(13,0);
+insert into class value(14,0);
+insert into class value(15,0);
 
 -- testCase
 insert into users value("testuser0","てすとゆーざーねーむ",0,0,1,6,10);

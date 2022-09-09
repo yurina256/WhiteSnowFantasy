@@ -83,12 +83,23 @@ connection.query(`SELECT count(*) FROM events where type = 0;`,(error, results) 
 connection.query(`SELECT count(*) FROM events where type = 1;`,(error, results) => {
   count_treasure =  results[0][Object.keys(results[0])[0]]+1;
 });
-//クラスをリセット
-connection.query(`DELETE from class;`,(error, results) => {
-  for(var i=0;i<count_class;i++){
-    connection.query(`insert into class value(?,0);`,[i]);
+
+//cluster並列化
+var cluster = require('cluster');  
+var express = require('express');  
+var numCPUs = require('os').cpus().length;
+if (cluster.isMaster) {  
+  for (var i = 0; i < numCPUs; i++) {
+      // Create a worker
+      console.log(`Master : Cluster Fork ${i}`);
+      cluster.fork();
   }
-});
+  cluster.on('exit', (worker, code, signal) => {
+    console.warn(`[${worker.id}] Worker died : [PID ${worker.process.pid}] [Signal ${signal}] [Code ${code}]`);
+    cluster.fork();
+  });
+
+}else{
 
 //処理系ここから
 
@@ -108,6 +119,41 @@ app.get("/",(req,res) => {
   console.log(req.ip);
   console.log(req.body);
   res.sendStatus(200);
+});
+
+//status check
+app.get("/api",(req,res) => {
+  //DB
+  connection.connect((err) => {
+    if (err) {
+      console.log('error connecting: ' + err.stack);
+      res.send('DB : ' + err.stack);
+      return;
+    }
+      console.log('success');
+      res.send('DB : success');
+    });
+});
+
+app.head("/",(req,res)=>{
+  res.sendStatus(200);
+})
+
+//
+app.get("/api/user/:userId",(req,res) => {
+  connection.query(`SELECT * FROM users where userId = '${req.params.userId}';`,(error, results) => {
+      console.log(results[0]);
+      res.json(results[0]);
+    }
+  );
+});
+
+app.get("/api/user-all",(req,res) => {
+  connection.query(`SELECT * FROM users;`,(error, results) => {
+      console.log(results);
+      res.json(results);
+    }
+  );
 });
 
 //振り分け
@@ -155,7 +201,7 @@ app.post("/api",(req,res) => {
     case "ランキング":
       get_rank(event);
       break;
-    case "クラスランキング"://壊れたのでなおす
+    case "クラスランキング":
       get_rank_class(event);
       break;
     case "ステータス":
@@ -705,3 +751,5 @@ function read_sheet(){
 }
 
 server.listen(port, () => console.log(`Listen : port ${port}!`));
+
+}
