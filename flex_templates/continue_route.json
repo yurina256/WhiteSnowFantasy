@@ -1,0 +1,42 @@
+{
+    "type": "bubble",
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "text",
+          "text": "Aルート:[進行中の謎]",
+          "size": "lg",
+          "weight": "regular"
+        }
+      ]
+    },
+    "footer": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "button",
+          "style": "primary",
+          "color": "#575757",
+          "margin": "none",
+          "action": {
+            "type": "uri",
+            "label": "謎をもう一度見る",
+            "uri": "https://linecorp.com"
+          }
+        },
+        {
+          "type": "button",
+          "action": {
+            "type": "message",
+            "label": "action",
+            "text": "Aルートのヒント"
+          },
+          "style": "secondary",
+          "margin": "md"
+        }
+      ]
+    }
+  }

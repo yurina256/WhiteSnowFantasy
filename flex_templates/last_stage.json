@@ -1,0 +1,35 @@
+{
+    "type": "bubble",
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "text",
+          "size": "lg",
+          "weight": "bold",
+          "text": "最後の謎が出現した！"
+        },
+        {
+          "type": "text",
+          "text": "[フレーバーテキストを挿入]"
+        }
+      ]
+    },
+    "footer": {
+      "type": "box",
+      "layout": "vertical",
+      "contents": [
+        {
+          "type": "button",
+          "action": {
+            "type": "uri",
+            "label": "謎を開く",
+            "uri": "http://whitesnowf.wpx.jp/saisyuuyuudou/"
+          },
+          "style": "secondary",
+          "margin": "md"
+        }
+      ]
+    }
+  }

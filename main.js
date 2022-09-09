@@ -251,7 +251,7 @@ function checkinputname(event){
     client.replyMessage(event.replyToken, return_obj);
   }else if(event.message.text == "いいえ"){
     //もっかい入力させる
-    client.replyMessage(event.replyToken, {type:'text',text:message.add_friend});
+    client.replyMessage(event.replyToken, {type:'text',text:message.ask_name});
     user_status[event.source.userId] = "waitinputname";
   }else{
     //inputname()で出したのを再表示
@@ -323,7 +323,7 @@ function checkinputclass(event){
     //dbたたく
     const classArr = ["教職員/外来","1年1組","1年2組","1年3組","1年4組","1年5組","1年6組","2年1組","2年2組","2年3組","2年4組","2年5組","2年6組","3年1組","3年2組","3年3組","3年4組","3年5組","3年6組"];
     const userclass = classArr.indexOf(usergrade_tmp[event.source.userId]+userclass_tmp[event.source.userId]);
-    connection.query(`insert into users value('${event.source.userId}','${username_tmp[event.source.userId]}',1,${userclass});`,(error,results) => {
+    connection.query(`insert into users value('${event.source.userId}','${username_tmp[event.source.userId]}',1,${userclass},1,6,10);`,(error,results) => {
       if(results){
         client.replyMessage(event.replyToken, {type:'text',text:message.input_done});
         user_status[event.source.userId] = null;
@@ -383,14 +383,15 @@ function input_message(event){
 
   connection.query(`select * from events where keyword = '${text}' OR keyword2 = '${text}';`,(error,results) => {
     if(results.length!=0){
-      if(results[0].permise){
-        connection.query(`select * from log where userId ='${event.source.userId}' AND eventId = '${results[0].permise}' ;`,(error2,results2) => {
+      if(results[0].permise_1){
+        connection.query(`select * from log where userId ='${event.source.userId}' AND eventId = '${results[0].permise_1}' ;`,(error2,results2) => {
           if(results2.length==0) return;
           //発火(前提条件を満たす)
           else do_event(event,results[0]);
         });
       }else{
         //発火(前提条件なし)
+        console.log("hoge");
         do_event(event,results[0]);
       }
     }
@@ -421,8 +422,40 @@ function do_event(event,event_data){
     if(event_data.type == 0){
       return_obj.contents.footer = message.event_footer;
       return_obj.contents.footer.contents[0].action.uri = event_data.link;
+
+      //暫定実装
+      const route_a = [1,15,2,3,4,5,0];
+      const a_point = route_a.indexOf(event_data.eventId);
+      if(a_point != -1){
+        connection.query(`update users set route_a_next = ${route_a[a_point+1]} where userId = '${event.source.userId}';`);
+      }
+
+      const route_b = [6,7,8,9,0];
+      const b_point = route_b.indexOf(event_data.eventId);
+      if(b_point != -1){
+        connection.query(`update users set route_b_next = ${route_b[b_point+1]} where userId = '${event.source.userId}';`);
+      }
+
+      const route_c = [10,11,12,13,14,0];
+      const c_point = route_c.indexOf(event_data.eventId);
+      if(c_point != -1){
+        connection.query(`update users set route_c_next = ${route_c[c_point+1]} where userId = '${event.source.userId}';`);
+      }
     }
-    client.replyMessage(event.replyToken,return_obj);
+    const add_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+    add_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.last_stage)));
+
+    if([5,9,14].indexOf(event_data.eventId) == -1){
+      client.replyMessage(event.replyToken,return_obj);
+    }
+    connection.query(`select * from users where userid = ?;`,[event.source.userId],(error,results_user) => {
+      if(results_user[0].route_a_next == 0 && results_user[0].route_b_next == 0 && results_user[0].route_c_next == 0){
+        client.replyMessage(event.replyToken,[return_obj,add_obj]);
+      }else{
+        client.replyMessage(event.replyToken,return_obj);
+      }
+    });
+
   });
 }
 
@@ -430,7 +463,7 @@ function do_event(event,event_data){
 function get_status(event){
   connection.query(`select * from users where userid = ?;`,[event.source.userId],(error,results) => {
     const name = results[0].userName;
-    const guild = (results[0].class == 0)?"None":`${Math.ceil(results[0].class/6)}-${results[0].class%5}`;
+    const guild = (results[0].class == 0)?"None":`${Math.ceil(results[0].class/6)}-${(results[0].class-1)%6 + 1}`;
     const level = String(results[0].level);
     connection.query(`select count(level > (select level from users where userId = ?) or null) from users;`,[event.source.userId],(error,results2) => {
       const rank = "#"+String(results2[0][Object.keys(results2[0])[0]]+1);
@@ -457,6 +490,24 @@ function get_status(event){
   });
 }
 
+
+function get_progress(event){
+  var return_herder = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+  return_herder.contents = Object.assign({}, JSON.parse(JSON.stringify(message.continue_header)));
+
+  var return_route_1 = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+  return_route_1.contents = Object.assign({}, JSON.parse(JSON.stringify(message.continue_route)));
+
+
+  var return_route_2 = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+  return_route_2.contents = Object.assign({}, JSON.parse(JSON.stringify(message.continue_route)));
+  
+  var return_route_3 = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
+  return_route_3.contents = Object.assign({}, JSON.parse(JSON.stringify(message.continue_route)));
+
+  return;
+}
+
 app.post("/api/read-spreadsheet",(req,res) => {
   //スプシ読み込み→DBに投げる
   var options = {
@@ -472,16 +523,21 @@ app.post("/api/read-spreadsheet",(req,res) => {
       const no = input[i][0];
       if(Number.isNaN(parseInt(no))) continue;
       const type      = ["謎解き","宝","その他"].indexOf(input[i][2]);
+      if(type == -1) continue; 
       const msg       = input[i][3] || "";
       const lv        = input[i][4] || "";
-      var permise = (input[i][5] || "").split(",")[0];
-      if(permise == "") permise = "null";
+      var permise_1 = (input[i][5] || "").split(",")[0];
+      if(permise_1 == "") permise_1 = "null";
+      var permise_2 = (input[i][5] || "").split(",")[1];
+      if(permise_2 == "" || permise_2 == undefined) permise_2 = "null";
+      var permise_3 = (input[i][5] || "").split(",")[2];
+      if(permise_3 == "" || permise_3 == undefined) permise_3 = "null";
       const keyword   = input[i][6] || "";
       const keyword2   = input[i][7] || "";
       const image     = input[i][9] || "";
       const link      = input[i][10] || "";
-      console.log(`insert into events value('${no}','${type}','${msg}','${lv}',${permise},'${keyword}','${keyword2}','${image}','${link}');`);
-      connection.query(`insert into events value('${no}','${type}','${msg}','${lv}',${permise},'${keyword}','${keyword2}','${image}','${link}');`);
+      console.log(`insert into events value('${no}','${type}','${msg}','${lv}',${permise_1},${permise_2},${permise_3},'${keyword}','${keyword2}','${image}','${link}');`);
+      connection.query(`insert into events value('${no}','${type}','${msg}','${lv}',${permise_1},${permise_2},${permise_3},'${keyword}','${keyword2}','${image}','${link}');`);
     }
     res.sendStatus(200);
   })

@@ -58,7 +58,7 @@ const __get_rank = {
       spacing: "md",
       action: {
         type: "uri",
-        uri: "https://linecorp.com"
+        uri: "http://whitesnowf.wpx.jp/"
       },
       contents: [
         {
@@ -163,7 +163,7 @@ const __get_rank = {
           action: {
             type: "uri",
             label: "詳細",
-            uri: "https://linecorp.com"
+            uri: "http://whitesnowf.wpx.jp/"
           }
         }
       ]
@@ -387,7 +387,7 @@ const __event_template = {
     aspectMode: "cover",
     action: {
       type: "uri",
-      uri: "http://linecorp.com/"
+      uri: "http://whitesnowf.wpx.jp/"
     }
   },
   body: {
@@ -442,6 +442,9 @@ module.exports = {
     event_footer : __event_footer,
     used_keyword : "既に達成したイベントです！",
     progressbar_compleat : "Compleat!!",
-    user_status : JSON.parse(fs.readFileSync('./flex_templates/user_status.json', 'utf8'))
+    user_status : JSON.parse(fs.readFileSync('./flex_templates/user_status.json', 'utf8')),
+    continue_header : JSON.parse(fs.readFileSync('./flex_templates/continue_header.json', 'utf8')),
+    continue_route : JSON.parse(fs.readFileSync('./flex_templates/continue_route.json', 'utf8')),
+    last_stage : JSON.parse(fs.readFileSync('./flex_templates/last_stage.json', 'utf8'))
 };
 //改行は\n
