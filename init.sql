@@ -67,6 +67,6 @@ insert into class value(14,0);
 insert into class value(15,0);
 
 -- testCase
-insert into users value("testuser0","てすとゆーざーねーむ",0,0,1,6,10);
+insert into users value("testuser0","未登録",0,0,1,6,10);
 insert into users value("testuser1","田中太郎",10,20,1,6,10);
 insert into users value("testuser2","東雲ゆりな",15,20,1,6,10);

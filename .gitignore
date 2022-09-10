@@ -3,4 +3,5 @@
 *.pem
 /public/img/*.jpg
 config.js
+config_copy.js
 *.sh
