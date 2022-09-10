@@ -3,3 +3,4 @@
 *.pem
 /public/img/*.jpg
 config.js
+*.sh

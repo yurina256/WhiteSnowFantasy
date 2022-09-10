@@ -429,7 +429,7 @@ module.exports = {
     add_friend: "友達追加ありがとうございます！",
     ask_name : "あなたの名前を教えてください！", //友達追加時メッセージ
     input_name : __input_name,
-    input_done: "登録が完了しました！",
+    input_done: "登録が完了しました！\nメインストーリーを始めるには、下のメニューバーからコースを選んでください。",
     get_rank : __get_rank,
     ask_grade : __ask_grade,
     ask_class : __ask_class,

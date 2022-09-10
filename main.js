@@ -45,7 +45,7 @@ connection.query(`use ${config.table}`);
 //グローバル一時変数,定数
 var user_status = Array(); //入力待ち状態-ここに値が入っている場合、次の入力の解釈を変える
 
-var user_registered = Array(); //ユーザーが登録済か
+var user_registered = Array(); //ユーザーが登録済か 更新しない
 
 var username_tmp = Array(); //ユーザー名設定対話中の一時変数
 
@@ -114,6 +114,7 @@ app.get("/",(req,res) => {
 app.post("/api",(req,res) => {
   //LINE用
   //署名検証
+  //console.log("input");
   sign_check(req,res,line_config);
   if(req.body.events.length == 0){
     //LINE側からの疎通チェック
@@ -151,31 +152,34 @@ app.post("/api",(req,res) => {
   }
 
   const text = event.message.text;
-  switch(text){
-    case "ランキング":
-      get_rank(event);
-      break;
-    case "クラスランキング"://壊れたのでなおす
-      get_rank_class(event);
-      break;
-    case "ステータス":
-      get_status(event);
-      break;
-    case "進行状況":
-      get_progress(event);
-      break;
-    case "狩人ルートのヒントを見る":
-      get_hint(event,0);
-      break;
-    case "小人ルートのヒントを見る":
-      get_hint(event,1);
-      break;
-    case "従者ルートのヒントを見る":
-      get_hint(event,2);
-      break;
+  if(["ランキング","ステータス","進行状況","狩人ルートのヒントを見る","小人ルートのヒントを見る","従者ルートのヒントを見る"].indexOf(text) != -1){
+    switch(text){
+      case "ランキング":
+        get_rank(event);
+        break;
+      case "クラスランキング"://壊れたのでなおす
+        get_rank_class(event);
+        break;
+      case "ステータス":
+        get_status(event);
+        break;
+      case "進行状況":
+        get_progress(event);
+        break;
+      case "狩人ルートのヒントを見る":
+        get_hint(event,0);
+        break;
+      case "小人ルートのヒントを見る":
+        get_hint(event,1);
+        break;
+      case "従者ルートのヒントを見る":
+        get_hint(event,2);
+        break;
+    }
+  }else{
+    input_message(event);
   }
   //どれでもない場合、キーワードが入力されたものとして扱う
-  input_message(event);
 });
 
 function branch(event){//user_statusが設定されている状態の場合(=対話中の場合)の振り分け
@@ -355,7 +359,7 @@ function get_rank_class(event){
       var return_obj = Object.assign({}, JSON.parse(JSON.stringify(flex_template)));
       return_obj.contents = Object.assign({}, JSON.parse(JSON.stringify(message.get_rank)));
       for(var i=0;i<3;i++){
-        return_obj.contents.body.contents[1].contents[i].contents[1].text = `${Math.ceil(results[i].id/5)}-${results[i].id%5}`
+        return_obj.contents.body.contents[1].contents[i].contents[1].text = `${Math.ceil(results[i].id/6)}-${(results[i].id+1)%6 + 1}`
         return_obj.contents.body.contents[1].contents[i].contents[2].text = "Lv"+String(results[i].level);
       }
       client.replyMessage(event.replyToken, return_obj);
@@ -372,15 +376,17 @@ function input_message(event){
     if(results.length!=0){
       if(results[0].permise_1){
         connection.query(`select * from log where userId ='${event.source.userId}' AND eventId = '${results[0].permise_1}' ;`,(error2,results2) => {
-          if(results2.length==0) return;
-          //発火(前提条件を満たす)
-          else do_event(event,results[0]);
+          if(results2.length==0){
+            client.replyMessage(event.replyToken,{type:'text',text:"これは違うようだ。もう一度考えてみよう。"});
+          }else do_event(event,results[0]);          //発火(前提条件を満たす)
         });
       }else{
         //発火(前提条件なし)
         console.log("hoge");
         do_event(event,results[0]);
       }
+    }else{
+      client.replyMessage(event.replyToken,{type:'text',text:"これは違うようだ。もう一度考えてみよう。"});
     }
   });
 }
